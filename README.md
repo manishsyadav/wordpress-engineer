@@ -1,155 +1,128 @@
-# Senior WordPress Engineer — Interview Prep Repository
+# WordPress Engineer — Interview Prep
 
-A comprehensive study guide and reference for Senior WordPress Engineer interviews. Each section covers core concepts, interview questions (Basic / Mid / Advanced), real-world scenarios, and working code examples.
+> Complete interview preparation for Senior WordPress Engineer roles.
+> Covers 15 topics with core concepts, 50–100 interview Q&A (with inline code), real-world scenarios, and architecture diagrams.
 
----
+## Topics
 
-## Table of Contents
+| # | Topic | Questions | Core Concepts | Scenarios |
+|---|-------|-----------|---------------|-----------|
+| 1 | [WordPress](./wordpress/) | 100 | ✅ | ✅ |
+| 2 | [PHP](./php/) | 100 | ✅ | ✅ |
+| 3 | [JavaScript](./javascript/) | 100 | ✅ | ✅ |
+| 4 | [MySQL](./mysql/) | 50 | ✅ | ✅ |
+| 5 | [HTML5](./html5/) | 50 | ✅ | ✅ |
+| 6 | [CSS3](./css3/) | 50 | ✅ | ✅ |
+| 7 | [SCSS / SASS](./scss/) | 50 | ✅ | ✅ |
+| 8 | [jQuery](./jquery/) | 50 | ✅ | ✅ |
+| 9 | [Cloud — AWS & GCP](./cloud-aws-gcp/) | 50 | ✅ | ✅ |
+| 10 | [Web Servers — Nginx & Apache](./web-servers/) | 50 | ✅ | ✅ |
+| 11 | [SEO, Analytics & GTM](./seo-analytics/) | 50 | ✅ | ✅ |
+| 12 | [REST API](./rest-api/) | 50 | ✅ | ✅ |
+| 13 | [React & Gutenberg](./react-and-gutenberg/) | 50 | ✅ | ✅ |
+| 14 | [Git & CI/CD](./git/) | 50 | ✅ | ✅ |
+| 15 | [Developer Tools](./tools/) | 50 | ✅ | ✅ |
 
-| # | Topic | Core Concepts | Interview Questions | Scenarios | Code Example |
-|---|-------|--------------|-------------------|-----------|-------------|
-| 1 | [WordPress](#1-wordpress) | [core-concepts.md](wordpress/core-concepts.md) | [interview-questions.md](wordpress/interview-questions.md) | [scenario-based.md](wordpress/scenario-based.md) | [examples.php](wordpress/coding/examples.php) |
-| 2 | [PHP](#2-php) | [core-concepts.md](php/core-concepts.md) | [interview-questions.md](php/interview-questions.md) | [scenario-based.md](php/scenario-based.md) | [examples.php](php/coding/examples.php) |
-| 3 | [MySQL](#3-mysql) | [core-concepts.md](mysql/core-concepts.md) | [interview-questions.md](mysql/interview-questions.md) | [scenario-based.md](mysql/scenario-based.md) | [examples.sql](mysql/coding/examples.sql) |
-| 4 | [HTML5](#4-html5) | [core-concepts.md](html5/core-concepts.md) | [interview-questions.md](html5/interview-questions.md) | [scenario-based.md](html5/scenario-based.md) | [examples.html](html5/coding/examples.html) |
-| 5 | [CSS3](#5-css3) | [core-concepts.md](css3/core-concepts.md) | [interview-questions.md](css3/interview-questions.md) | [scenario-based.md](css3/scenario-based.md) | [examples.css](css3/coding/examples.css) |
-| 6 | [Sass/SCSS](#6-sassscss) | [core-concepts.md](sass-scss/core-concepts.md) | [interview-questions.md](sass-scss/interview-questions.md) | [scenario-based.md](sass-scss/scenario-based.md) | [examples.scss](sass-scss/coding/examples.scss) |
-| 7 | [JavaScript](#7-javascript) | [core-concepts.md](javascript/core-concepts.md) | [interview-questions.md](javascript/interview-questions.md) | [scenario-based.md](javascript/scenario-based.md) | [examples.js](javascript/coding/examples.js) |
-| 8 | [jQuery](#8-jquery) | [core-concepts.md](jquery/core-concepts.md) | [interview-questions.md](jquery/interview-questions.md) | [scenario-based.md](jquery/scenario-based.md) | [examples.js](jquery/coding/examples.js) |
-| 9 | [Server / GCP / AWS](#9-server--gcp--aws) | [core-concepts.md](server-gcp-aws/core-concepts.md) | [interview-questions.md](server-gcp-aws/interview-questions.md) | [scenario-based.md](server-gcp-aws/scenario-based.md) | [examples.sh](server-gcp-aws/coding/examples.sh) |
-| 10 | [Web Server (Nginx/Apache)](#10-web-server) | [core-concepts.md](web-server/core-concepts.md) | [interview-questions.md](web-server/interview-questions.md) | [scenario-based.md](web-server/scenario-based.md) | [nginx.conf](web-server/coding/nginx.conf) |
-| 11 | [Marketing / SEO / GTM / GA](#11-marketing--seo--gtm--ga) | [core-concepts.md](marketing-seo-gtm-ga/core-concepts.md) | [interview-questions.md](marketing-seo-gtm-ga/interview-questions.md) | [scenario-based.md](marketing-seo-gtm-ga/scenario-based.md) | [examples.js](marketing-seo-gtm-ga/coding/examples.js) |
+## Folder Structure
 
----
+Each topic contains:
 
-## 1. WordPress
+```
+topic/
+├── core-concepts.md       # Key concepts with architecture diagrams (Mermaid)
+├── interview-questions.md # Basic / Mid / Advanced Q&A with inline code
+└── scenario-based.md      # Real-world problem → solution scenarios
+```
 
-The WordPress section covers the Loop, WP_Query, REST API, plugin/theme architecture, custom post types, hooks system, multisite, performance optimization, and security hardening.
+## Interview Questions Format
 
-- [Core Concepts](wordpress/core-concepts.md)
-- [Interview Questions](wordpress/interview-questions.md)
-- [Scenario-Based Problems](wordpress/scenario-based.md)
-- [Code Examples](wordpress/coding/examples.php)
+Questions are split into 3 levels:
 
----
+| Level | Description | Count |
+|-------|-------------|-------|
+| **Basic** | Fundamentals, definitions, syntax | ~35% |
+| **Mid** | Practical usage, patterns, WordPress integration | ~40% |
+| **Advanced** | Architecture, performance, security, scale | ~25% |
 
-## 2. PHP
+## How to Use
 
-Covers modern PHP (8.x), OOP principles, design patterns, PSR standards, Composer, type system, closures, generators, error handling, and performance best practices.
+1. **Before an interview:** Review `core-concepts.md` for the topic
+2. **Practice Q&A:** Go through `interview-questions.md` — try answering before reading
+3. **Scenario prep:** Work through `scenario-based.md` for real-world problem-solving
+4. **Focus areas for Senior roles:** Pay extra attention to Advanced questions and scenarios
 
-- [Core Concepts](php/core-concepts.md)
-- [Interview Questions](php/interview-questions.md)
-- [Scenario-Based Problems](php/scenario-based.md)
-- [Code Examples](php/coding/examples.php)
+### During the Interview
 
----
+- For "explain X" questions: lead with a one-sentence definition, then give a concrete example.
+- For scenario questions: restate the problem, outline your approach, then dive into specifics.
+- For coding questions: talk through your intent before you type. Interviewers value reasoning.
 
-## 3. MySQL
+### Self-Assessment
 
-Covers relational design, indexing strategies, query optimization, joins, transactions, stored procedures, the WordPress schema ($wpdb), and replication.
+Rate yourself on each topic after reviewing:
 
-- [Core Concepts](mysql/core-concepts.md)
-- [Interview Questions](mysql/interview-questions.md)
-- [Scenario-Based Problems](mysql/scenario-based.md)
-- [Code Examples](mysql/coding/examples.sql)
+- **Basic** — you can define the concept and use it in a sentence.
+- **Mid** — you can implement it without looking it up.
+- **Advanced** — you can compare trade-offs and debug edge cases under pressure.
 
----
+### Suggested Study Order
 
-## 4. HTML5
+| Day | Topics |
+|-----|--------|
+| 1 | WordPress, PHP |
+| 2 | MySQL, REST API |
+| 3 | JavaScript, React & Gutenberg |
+| 4 | HTML5, CSS3, SCSS / SASS |
+| 5 | Git & CI/CD, Developer Tools |
+| 6 | Cloud — AWS & GCP, Web Servers, SEO, Analytics & GTM |
+| 7 | Full mock interview: pick one scenario per topic |
 
-Covers semantic markup, accessibility (ARIA, WCAG), Canvas, Web Storage, Service Workers, Web Components, forms validation, and SEO-relevant structure.
+## Topics Overview
 
-- [Core Concepts](html5/core-concepts.md)
-- [Interview Questions](html5/interview-questions.md)
-- [Scenario-Based Problems](html5/scenario-based.md)
-- [Code Examples](html5/coding/examples.html)
+### 1. WordPress
+The WordPress hook system (actions and filters), The Loop, WP_Query, custom post types and taxonomies, plugin and theme architecture, the REST API, multisite networks, performance optimization (object caching, transients), and security hardening best practices.
 
----
+### 2. PHP
+Modern PHP 8.x features including named arguments, match expressions, and union types. Object-oriented design patterns, PSR standards, Composer dependency management, closures, generators, fibers, error handling, and performance profiling techniques relevant to WordPress development.
 
-## 5. CSS3
+### 3. JavaScript
+The event loop and concurrency model, closures, prototypal inheritance, ES6+ features (destructuring, spread, optional chaining), async/await and Promises, ES modules, the Fetch API, Web Workers, and client-side performance patterns used in WordPress themes and plugins.
 
-Covers the box model, specificity, Flexbox, CSS Grid, custom properties, animations, media queries, `contain`, `will-change`, and modern layout techniques.
+### 4. MySQL
+Relational database design, indexing strategies and query optimization, JOIN types and when to use them, transactions and locking, the WordPress database schema (`$wpdb`), slow query analysis, and replication concepts relevant to high-traffic WordPress deployments.
 
-- [Core Concepts](css3/core-concepts.md)
-- [Interview Questions](css3/interview-questions.md)
-- [Scenario-Based Problems](css3/scenario-based.md)
-- [Code Examples](css3/coding/examples.css)
+### 5. HTML5
+Semantic markup and document outlining, accessibility (ARIA roles, WCAG 2.1 compliance), Canvas and SVG, Web Storage and IndexedDB, Service Workers and PWA patterns, form validation APIs, and SEO-relevant HTML structure for WordPress themes.
 
----
+### 6. CSS3
+The box model and stacking context, specificity and the cascade, Flexbox and CSS Grid layout, custom properties (CSS variables), keyframe animations and transitions, media queries and container queries, and modern techniques like `contain` and `will-change` for rendering performance.
 
-## 6. Sass/SCSS
+### 7. SCSS / SASS
+Variables, nesting rules, partials and the `@use`/`@forward` module system, mixins and functions, the `@extend` directive and placeholder selectors, maps, control flow (`@each`, `@for`, `@if`), the 7-1 architecture pattern, and integration with WordPress build tooling (webpack, Vite).
 
-Covers variables, nesting, partials, mixins, functions, extend/placeholder, maps, loops, the 7-1 architecture pattern, and build tooling.
+### 8. jQuery
+DOM traversal and manipulation, event delegation, AJAX with `$.ajax` and Deferred objects, jQuery plugin authoring, WordPress `noConflict` mode and the `wp_enqueue_script` dependency system, and a practical path for migrating legacy jQuery code to vanilla JavaScript.
 
-- [Core Concepts](sass-scss/core-concepts.md)
-- [Interview Questions](sass-scss/interview-questions.md)
-- [Scenario-Based Problems](sass-scss/scenario-based.md)
-- [Code Examples](sass-scss/coding/examples.scss)
+### 9. Cloud — AWS & GCP
+Linux server administration fundamentals, AWS services (EC2, RDS, S3, CloudFront, Elastic Beanstalk), GCP equivalents (Compute Engine, Cloud SQL, GCS, Cloud CDN), Docker and containerised WordPress, CI/CD pipeline design, and infrastructure-as-code basics with Terraform.
 
----
+### 10. Web Servers — Nginx & Apache
+Architectural differences between event-driven (Nginx) and process-based (Apache) servers, virtual host and server block configuration, SSL/TLS setup and renewal, HTTP/2 and HTTP/3, caching headers and reverse-proxy patterns, rate limiting, WordPress-specific Nginx rewrite rules, and server security hardening.
 
-## 7. JavaScript
+### 11. SEO, Analytics & GTM
+Technical SEO fundamentals, Core Web Vitals measurement and optimisation, structured data (JSON-LD / schema.org), Google Tag Manager container and trigger architecture, Google Analytics 4 event tracking, conversion measurement, and cookie consent management for GDPR compliance.
 
-Covers the event loop, closures, prototypal inheritance, ES6+ features, async/await, modules, the Fetch API, Web Workers, and performance patterns.
+### 12. REST API
+WordPress REST API architecture and routing, registering custom endpoints with `register_rest_route`, authentication strategies (Application Passwords, JWT, OAuth 2.0), permission callbacks and data sanitisation, response schema definition, and consuming the REST API from Gutenberg blocks and external clients.
 
-- [Core Concepts](javascript/core-concepts.md)
-- [Interview Questions](javascript/interview-questions.md)
-- [Scenario-Based Problems](javascript/scenario-based.md)
-- [Code Examples](javascript/coding/examples.js)
+### 13. React & Gutenberg
+React fundamentals (Virtual DOM, JSX, hooks), Gutenberg block architecture, `block.json` registration, `edit` vs `save` functions, `InspectorControls`, `RichText`, `MediaUpload`, the `@wordpress/data` store, `ServerSideRender`, block transforms, Full Site Editing, `theme.json`, and block patterns / template parts.
 
----
+### 14. Git & CI/CD
+The Git data model (blobs, trees, commits, refs), branching strategies (GitFlow vs trunk-based development), merge vs rebase vs squash, cherry-pick, stash, bisect, reflog, Git hooks, submodules, semantic versioning with tags, GitHub Actions workflow authoring, and deployment pipeline design for WordPress projects.
 
-## 8. jQuery
-
-Covers DOM traversal, event delegation, AJAX, deferred objects, plugin authoring, the jQuery lifecycle in WordPress (noConflict mode), and migration from jQuery to vanilla JS.
-
-- [Core Concepts](jquery/core-concepts.md)
-- [Interview Questions](jquery/interview-questions.md)
-- [Scenario-Based Problems](jquery/scenario-based.md)
-- [Code Examples](jquery/coding/examples.js)
-
----
-
-## 9. Server / GCP / AWS
-
-Covers Linux administration, GCP (Compute Engine, Cloud SQL, GCS, Cloud CDN), AWS (EC2, RDS, S3, CloudFront), Docker, CI/CD, and infrastructure-as-code basics.
-
-- [Core Concepts](server-gcp-aws/core-concepts.md)
-- [Interview Questions](server-gcp-aws/interview-questions.md)
-- [Scenario-Based Problems](server-gcp-aws/scenario-based.md)
-- [Code Examples](server-gcp-aws/coding/examples.sh)
-
----
-
-## 10. Web Server
-
-Covers Nginx vs Apache, virtual hosts, SSL/TLS, HTTP/2, caching headers, reverse proxies, rate limiting, WordPress-specific Nginx rules, and security hardening.
-
-- [Core Concepts](web-server/core-concepts.md)
-- [Interview Questions](web-server/interview-questions.md)
-- [Scenario-Based Problems](web-server/scenario-based.md)
-- [Code Examples](web-server/coding/nginx.conf)
-
----
-
-## 11. Marketing / SEO / GTM / GA
-
-Covers technical SEO, Core Web Vitals, structured data, Google Tag Manager container architecture, Google Analytics 4 (GA4), conversion tracking, and consent management.
-
-- [Core Concepts](marketing-seo-gtm-ga/core-concepts.md)
-- [Interview Questions](marketing-seo-gtm-ga/interview-questions.md)
-- [Scenario-Based Problems](marketing-seo-gtm-ga/scenario-based.md)
-- [Code Examples](marketing-seo-gtm-ga/coding/examples.js)
-
----
-
-## How to Use This Repo
-
-1. Work through each topic folder in order or jump to weak areas.
-2. Read `core-concepts.md` first to anchor the mental model.
-3. Attempt each interview question before reading the answer.
-4. Study the scenario files to practice open-ended thinking.
-5. Run or adapt the code examples in a local environment.
+### 15. Developer Tools
+WP-CLI commands for site management and scripting, Composer for PHP dependency management, npm / webpack / Vite for asset bundling, Docker and `wp-env` for local development, Xdebug step-debugging, Query Monitor for database and hook profiling, PHPUnit with `WP_UnitTestCase`, end-to-end testing with Playwright or Cypress, and Postman for REST API exploration.
 
 ---
 

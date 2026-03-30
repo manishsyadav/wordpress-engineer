@@ -1,383 +1,582 @@
 # jQuery — Interview Questions
 
-> Basic and Mid-Level Q&A with inline code examples relevant to WordPress development.
+> **50 questions** · Basic (35%) · Mid (40%) · Advanced (25%)
+>
+> Each answer includes a concise code example inline.
 
 ---
 
-## Basic Questions
+## Basic
 
-**Q1: Why does WordPress use `jQuery.noConflict()` and how do you write jQuery safely in a WordPress context?**
-
-**A:** WordPress loads `jQuery.noConflict()` during bootstrapping so that `$` can remain available to other libraries (Prototype, MooTools) that use it. This means `$` is `undefined` in the global scope for your code. The safe patterns are: wrapping your code in an IIFE that receives `jQuery` as `$`, or passing a function to `jQuery()` directly. Both ensure `$` works without conflicting with other scripts on the page.
-
+**Q1: What is `$(document).ready()` and why do you use it?**
+**A:** Ensures the DOM is fully loaded before running jQuery code. Prevents errors from targeting elements that don't exist yet.
 ```javascript
-// Recommended IIFE pattern for themes and plugins
-(function ($) {
-  'use strict';
-
-  $(function () {
-    // DOM ready — $ is safely aliased to jQuery
-    $('.wp-block-button__link').on('click', function (e) {
-      console.log('Button clicked:', $(this).text());
-    });
-  });
-
-}(jQuery));
-
-// Alternative: pass a function to jQuery()
-jQuery(function ($) {
-  $('body').addClass('js-loaded');
+$(function() {
+  console.log('DOM ready');
 });
 ```
 
 ---
 
-**Q2: What is the difference between `.on()`, `.bind()`, `.live()`, and `.delegate()`?**
-
-**A:** `.bind()` and `.live()` are deprecated since jQuery 1.7 and removed in 3.0. `.delegate()` was the precursor to `.on()` with delegation. Today, `.on()` is the single unified event API — it handles both direct binding and event delegation depending on whether a selector argument is provided. Always use `.on()` and `.off()` in modern WordPress development.
-
+**Q2: What is the difference between `$('#id')` and `$('.class')` selectors?**
+**A:** `#id` selects a single unique element; `.class` selects all elements sharing that class name.
 ```javascript
-// Direct binding — only works on elements that exist NOW
-$('#save-post').on('click', handleSave);
+$('#main-nav').hide();
+$('.menu-item').addClass('active');
+```
 
-// Delegated binding — works for elements added later (AJAX content, Gutenberg previews)
-$('#posts-container').on('click', '.edit-link', function (e) {
+---
+
+**Q3: How do you select all `<p>` elements inside a `<div>` using jQuery?**
+**A:** Use a descendant selector string inside `$()`, exactly like CSS.
+```javascript
+$('div p').css('color', 'blue');
+```
+
+---
+
+**Q4: How do you get and set the HTML content of an element?**
+**A:** `.html()` with no argument gets inner HTML; passing a string sets it.
+```javascript
+var content = $('#box').html();
+$('#box').html('<strong>New content</strong>');
+```
+
+---
+
+**Q5: How do you get and set plain text content of an element?**
+**A:** `.text()` reads or writes text, stripping HTML tags on read.
+```javascript
+var label = $('#title').text();
+$('#title').text('Updated Title');
+```
+
+---
+
+**Q6: How do you read or write the value of a form input?**
+**A:** `.val()` reads or sets the `value` property of any form element.
+```javascript
+var email = $('input[name="email"]').val();
+$('input[name="email"]').val('user@example.com');
+```
+
+---
+
+**Q7: How do you read and write HTML attributes with jQuery?**
+**A:** `.attr()` gets or sets any HTML attribute by name.
+```javascript
+var href = $('a.logo').attr('href');
+$('img.hero').attr('alt', 'Hero banner');
+```
+
+---
+
+**Q8: How do you store arbitrary data on a DOM element without polluting attributes?**
+**A:** `.data()` stores key/value pairs in jQuery's internal cache, not in the HTML.
+```javascript
+$('#post').data('postId', 42);
+var id = $('#post').data('postId'); // 42
+```
+
+---
+
+**Q9: How do you add, remove, and toggle a CSS class?**
+**A:** Use `.addClass()`, `.removeClass()`, and `.toggleClass()` respectively.
+```javascript
+$('#nav').addClass('open');
+$('#nav').removeClass('open');
+$('#nav').toggleClass('open');
+```
+
+---
+
+**Q10: How do you apply inline CSS styles with jQuery?**
+**A:** `.css()` reads or writes one or multiple inline style properties at once.
+```javascript
+$('#banner').css({ backgroundColor: '#333', color: '#fff' });
+```
+
+---
+
+**Q11: How do you traverse to the parent of a selected element?**
+**A:** `.parent()` returns the direct parent; `.parents()` returns all ancestors up to the root.
+```javascript
+$('.menu-item.active').parent().addClass('has-active');
+```
+
+---
+
+**Q12: How do you find all child and descendant elements?**
+**A:** `.children()` returns direct children only; `.find()` searches all descendants.
+```javascript
+$('#sidebar').children('ul').addClass('widget-list');
+$('#content').find('img').addClass('responsive');
+```
+
+---
+
+**Q13: How do you get sibling elements in jQuery?**
+**A:** `.siblings()` returns all siblings; `.next()` and `.prev()` return adjacent ones.
+```javascript
+$('.active-tab').siblings().removeClass('active');
+$('li.current').next().addClass('up-next');
+```
+
+---
+
+**Q14: How do you fade an element in and out?**
+**A:** `.fadeIn()` and `.fadeOut()` animate opacity; an optional callback fires when done.
+```javascript
+$('#overlay').fadeIn(300);
+$('#overlay').fadeOut(300, function() { $(this).remove(); });
+```
+
+---
+
+**Q15: How do you slide an element up and down?**
+**A:** `.slideDown()` reveals an element and `.slideUp()` hides it by animating its height.
+```javascript
+$('.accordion-content').slideUp(200);
+$('.accordion-content.active').slideDown(200);
+```
+
+---
+
+**Q16: How does jQuery chaining work?**
+**A:** Most jQuery methods return the same jQuery object, allowing multiple operations in a single expression.
+```javascript
+$('#alert')
+  .addClass('visible')
+  .text('Saved!')
+  .fadeIn(200)
+  .delay(2000)
+  .fadeOut(400);
+```
+
+---
+
+**Q17: How do you attach a click event handler in jQuery?**
+**A:** Use `.on('click', handler)` — the preferred modern API over the deprecated `.click()` shorthand.
+```javascript
+$('#submit-btn').on('click', function(e) {
   e.preventDefault();
-  openEditor($(this).data('post-id'));
+  console.log('Clicked');
 });
-
-// Removing a listener (must match selector and handler reference)
-$('#posts-container').off('click', '.edit-link', handleEditClick);
-
-// Namespace your events to easily remove all plugin listeners
-$('body')
-  .on('click.myPlugin mouseover.myPlugin', '.hotspot', showTooltip);
-
-// Remove all .myPlugin listeners without affecting others
-$('body').off('.myPlugin');
 ```
 
 ---
 
-**Q3: What does `$(document).ready()` do and how does it differ from `window.onload`?**
-
-**A:** `$(document).ready()` fires as soon as the HTML is fully parsed (DOM tree built), but before images, stylesheets, and iframes have finished loading. `window.onload` fires after **everything** on the page has loaded, which can be several seconds later on image-heavy pages. For most DOM manipulation, `$(document).ready()` is preferred because it makes the page interactive sooner. Only use `window.onload` (or the `load` event) when you genuinely need image dimensions or other external resource data.
-
+**Q18: How do you serialize a form for AJAX submission?**
+**A:** `.serialize()` returns a URL-encoded string; `.serializeArray()` returns an array of name/value objects.
 ```javascript
-// $(document).ready() — fires when DOM is parsed
-$(function () {
-  // Good: init navigation, bind events, hide elements, set up tooltips
-  initNavigation();
-  bindFormHandlers();
-});
-
-// window.onload equivalent in jQuery — fires after all resources load
-$(window).on('load', function () {
-  // Required: calculating image dimensions, initialising lightboxes
-  // that depend on natural image sizes
-  initMasonryLayout();
-  const imgHeight = $('img.hero').height(); // accurate now
-});
-
-// Practical timing difference test
-$(function ()         { console.log('DOM ready');       }); // fires first
-$(window).on('load',  function () { console.log('Page fully loaded'); }); // fires last
+var data = $('#contact-form').serialize();
+// "name=John&email=john%40example.com"
 ```
 
 ---
 
-**Q4: How does jQuery's AJAX `.done()`, `.fail()`, `.always()` work, and how does it relate to native Promises?**
-
-**A:** jQuery's `$.ajax()` returns a **jqXHR** object that implements the Deferred interface. `.done()` runs on success, `.fail()` on failure, `.always()` on both. These are jQuery's version of `.then()`, `.catch()`, `.finally()`. In jQuery 3+, jqXHR also implements the native Promises/A+ interface, so you can use `.then()` or wrap it in `Promise.resolve()` to use `async/await`.
-
+**Q19: How do you iterate over a jQuery collection?**
+**A:** `.each()` loops through every matched element, providing index and the raw DOM node.
 ```javascript
-// Traditional jQuery Deferred style
+$('li.item').each(function(i, el) {
+  console.log(i, $(el).text());
+});
+```
+
+---
+
+**Q20: What does `$.extend()` do?**
+**A:** Merges properties from source objects into a target. Pass `true` as the first argument for a deep (recursive) merge.
+```javascript
+var defaults = { color: 'blue', size: 12 };
+var options  = $.extend({}, defaults, { color: 'red' });
+// { color: 'red', size: 12 }
+```
+
+---
+
+## Mid
+
+**Q21: What is event delegation and why is it useful?**
+**A:** Attach one listener to a stable ancestor and filter by selector. Works for dynamically added elements and reduces total listener count.
+```javascript
+$('#post-list').on('click', '.delete-btn', function() {
+  $(this).closest('li').remove();
+});
+```
+
+---
+
+**Q22: How do you remove an event listener with jQuery?**
+**A:** `.off()` removes handlers. Pass the event name and original handler (or a namespace) to remove only that specific listener.
+```javascript
+function handleClick(e) { console.log('clicked'); }
+$('#btn').on('click', handleClick);
+$('#btn').off('click', handleClick);
+```
+
+---
+
+**Q23: What is the difference between `.trigger()` and `.triggerHandler()`?**
+**A:** `.trigger()` fires the event, runs the default action, and bubbles. `.triggerHandler()` fires only the first element's handler, returns its value, and does not bubble.
+```javascript
+$('#form').triggerHandler('submit'); // no page reload
+$('#form').trigger('submit');        // causes default submit
+```
+
+---
+
+**Q24: How do you fire an event handler only once?**
+**A:** `.one()` attaches a handler that automatically unbinds itself after its first execution.
+```javascript
+$('#modal-overlay').one('click', function() {
+  $('#modal').hide();
+});
+```
+
+---
+
+**Q25: How do you make an AJAX GET request with jQuery?**
+**A:** `$.get()` is a shorthand around `$.ajax()` for GET requests, accepting a URL, data, and success callback.
+```javascript
+$.get('/wp-json/wp/v2/posts', { per_page: 5 }, function(data) {
+  console.log(data);
+});
+```
+
+---
+
+**Q26: How do you use `$.ajax()` for a POST request with JSON?**
+**A:** Set `type: 'POST'` and `contentType: 'application/json'`, then `JSON.stringify` the data payload.
+```javascript
 $.ajax({
-  url:    ajaxurl,
-  method: 'POST',
-  data:   { action: 'get_featured_posts', nonce: MyTheme.nonce },
-})
-  .done(function (response) {
-    if (response.success) renderPosts(response.data);
-  })
-  .fail(function (jqXHR, textStatus) {
-    console.error('Request failed:', textStatus, jqXHR.responseText);
-  })
-  .always(function () {
-    $('#spinner').fadeOut();
-  });
+  url: '/api/save',
+  type: 'POST',
+  contentType: 'application/json',
+  data: JSON.stringify({ title: 'Hello' }),
+  success: function(res) { console.log(res); }
+});
+```
 
-// Modern: wrap jqXHR in native Promise for async/await
-async function fetchPosts() {
-  try {
-    const data = await Promise.resolve(
-      $.ajax({ url: ajaxurl, method: 'POST', data: { action: 'get_posts', nonce: MyTheme.nonce } })
-    );
-    return data;
-  } catch (jqXHR) {
-    throw new Error(`${jqXHR.status}: ${jqXHR.responseText}`);
-  }
+---
+
+**Q27: How do you handle AJAX errors in jQuery?**
+**A:** Chain `.fail()` on the returned jqXHR object, or use the `error` callback inside `$.ajax()`.
+```javascript
+$.get('/api/data')
+  .done(function(data) { console.log(data); })
+  .fail(function(xhr, status, err) { console.error(err); });
+```
+
+---
+
+**Q28: How do you send a secure WordPress AJAX request with jQuery?**
+**A:** POST to `ajaxurl` with the `action` and a `nonce`; verify server-side with `check_ajax_referer()`.
+```javascript
+$.post(ajaxurl, {
+  action: 'my_action',
+  nonce: myVars.nonce,
+  post_id: 42
+}, function(response) {
+  console.log(response.data);
+});
+```
+
+---
+
+**Q29: What is `$.Deferred` and how do you use it?**
+**A:** A Deferred lets you create and control a promise manually. Resolve or reject it to trigger `.done()` or `.fail()` callbacks.
+```javascript
+function loadData() {
+  var dfd = $.Deferred();
+  setTimeout(function() { dfd.resolve('done'); }, 500);
+  return dfd.promise();
+}
+loadData().done(function(msg) { console.log(msg); });
+```
+
+---
+
+**Q30: How does `$.when()` coordinate multiple AJAX calls?**
+**A:** `$.when()` accepts multiple promises and resolves only when all resolve, or rejects immediately if any one fails.
+```javascript
+$.when(
+  $.get('/api/users'),
+  $.get('/api/posts')
+).done(function(users, posts) {
+  console.log(users[0], posts[0]);
+});
+```
+
+---
+
+**Q31: How do you write a jQuery plugin?**
+**A:** Extend `$.fn` with your plugin name and always return `this` to preserve chaining.
+```javascript
+$.fn.highlight = function(color) {
+  return this.css('background', color || 'yellow');
+};
+$('p.note').highlight('#ffe066');
+```
+
+---
+
+**Q32: What is jQuery no-conflict mode and when is it needed?**
+**A:** `$.noConflict()` releases the `$` alias for other libraries. WordPress loads jQuery in no-conflict mode by default, so plugins must use `jQuery` or a wrapper.
+```javascript
+var jq = $.noConflict();
+jq(function() {
+  jq('#logo').fadeIn();
+});
+```
+
+---
+
+**Q33: How does `.closest()` differ from `.parents()`?**
+**A:** `.closest()` starts from the element itself and stops at the first match; `.parents()` returns all matching ancestors without stopping.
+```javascript
+$('.delete-btn').on('click', function() {
+  $(this).closest('.card').remove();
+});
+```
+
+---
+
+**Q34: How do custom event namespaces work in jQuery?**
+**A:** Append `.namespace` to event names so you can remove or trigger only namespaced handlers without affecting others.
+```javascript
+$('#menu').on('click.nav', 'a', handleNav);
+// Remove only nav-related click handlers:
+$('#menu').off('click.nav');
+```
+
+---
+
+**Q35: What is the difference between `.detach()` and `.remove()`?**
+**A:** Both remove elements from the DOM, but `.detach()` keeps jQuery event handlers and data intact so the element can be re-appended later.
+```javascript
+var $el = $('#widget').detach(); // events preserved
+$('#new-container').append($el);
+```
+
+---
+
+**Q36: How do you clone an element including its event handlers?**
+**A:** Pass `true` to `.clone()` to deep-copy both the element and all attached jQuery events and data.
+```javascript
+var $copy = $('#template-item').clone(true);
+$('#list').append($copy);
+```
+
+---
+
+**Q37: How do you fix `this` context inside a jQuery event handler?**
+**A:** Use `$.proxy(fn, context)` to bind a specific `this`, similar to native `.bind()`.
+```javascript
+var obj = { name: 'Widget' };
+$('#btn').on('click', $.proxy(function() {
+  console.log(this.name); // 'Widget'
+}, obj));
+```
+
+---
+
+**Q38: How do you cache jQuery selectors for better performance?**
+**A:** Store the jQuery object in a variable to avoid repeated DOM queries inside loops or event handlers.
+```javascript
+// Slow: queries DOM every iteration
+$('.items').each(function() { $('.counter').text(++n); });
+
+// Fast: query once
+var $counter = $('.counter');
+$('.items').each(function() { $counter.text(++n); });
+```
+
+---
+
+**Q39: How does `$.isFunction()` help with flexible plugin options?**
+**A:** It lets a plugin accept either a static value or a callback, calling it only when it is a function.
+```javascript
+$.fn.greet = function(msg) {
+  var text = $.isFunction(msg) ? msg() : msg;
+  return this.text(text);
+};
+```
+
+---
+
+**Q40: How do you create custom animations with `.animate()`?**
+**A:** `.animate()` tweens any numeric CSS property over a duration, with optional easing and a completion callback.
+```javascript
+$('#panel').animate({
+  width: '300px',
+  opacity: 0.8
+}, 400, 'swing', function() {
+  console.log('animation complete');
+});
+```
+
+---
+
+## Advanced
+
+**Q41: How do you implement a secure WordPress AJAX handler end-to-end?**
+**A:** Use `wp_localize_script` to pass `ajaxurl` and a nonce to JS; verify with `check_ajax_referer()` in PHP before processing.
+```javascript
+// JS
+$.post(myAjax.url, {
+  action: 'fetch_posts',
+  nonce: myAjax.nonce
+}, function(r) { if (r.success) renderPosts(r.data); });
+```
+```php
+// PHP
+add_action('wp_ajax_fetch_posts', function() {
+  check_ajax_referer('fetch_posts_nonce', 'nonce');
+  wp_send_json_success(get_posts());
+});
+```
+
+---
+
+**Q42: How do you build a reusable `$.ajax()` wrapper for the WP REST API?**
+**A:** Wrap `$.ajax()` in a factory that injects the nonce header and base URL, returning the jqXHR promise for chaining.
+```javascript
+function apiFetch(endpoint, method, payload) {
+  return $.ajax({
+    url: wpApiSettings.root + endpoint,
+    type: method || 'GET',
+    data: payload,
+    beforeSend: function(xhr) {
+      xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
+    }
+  });
+}
+apiFetch('wp/v2/posts').done(function(posts) { console.log(posts); });
+```
+
+---
+
+**Q43: How do you prevent memory leaks when destroying jQuery-enhanced widgets?**
+**A:** Unbind events with `.off()`, clear data with `.removeData()`, then remove the element. `.remove()` handles all three for jQuery-tracked bindings.
+```javascript
+function destroyWidget($el) {
+  $el.off();        // unbind all jQuery events
+  $el.removeData(); // clear $.data cache
+  $el.remove();     // detach from DOM
 }
 ```
 
 ---
 
-**Q5: What is jQuery method chaining and what does `.end()` do?**
-
-**A:** Every jQuery method that traverses or filters the collection returns a new jQuery object but preserves the previous one on an internal stack. Chaining calls on the returned object keeps operations compact and readable. `.end()` pops the stack, reverting to the previous matched set. This lets you branch to different subsets of elements within a single chain without re-querying the DOM.
-
+**Q44: How do you write a jQuery plugin that supports overridable defaults?**
+**A:** Merge user options with `$.extend()` and expose defaults on `$.fn.pluginName.defaults` for global overrides.
 ```javascript
-// Without chaining — multiple DOM queries
-const $form = $('#contact-form');
-$form.find('input').addClass('validated');
-$form.find('.error').remove();
-$form.submit();
-
-// With chaining and .end() — single DOM query for #contact-form
-$('#contact-form')
-  .find('input')
-    .removeClass('error')
-    .addClass('validated')
-  .end()                          // back to #contact-form
-  .find('.error-message')
-    .slideUp(200)
-  .end()                          // back to #contact-form
-  .addClass('form-submitted')
-  .submit();
-```
-
----
-
-## Mid-Level Questions
-
-**Q6: How do you perform WordPress AJAX requests with jQuery, including nonce verification?**
-
-**A:** WordPress AJAX runs through `admin-ajax.php`. You must pass an `action` (matches `wp_ajax_{action}` or `wp_ajax_nopriv_{action}` hooks) and a nonce created with `wp_create_nonce()`. Use `wp_localize_script()` to safely pass the nonce and `ajaxurl` to your JavaScript. On the PHP side, call `check_ajax_referer()` before processing the request.
-
-```javascript
-// PHP side (functions.php or plugin file):
-// wp_localize_script('my-script', 'MyAjax', [
-//   'url'   => admin_url('admin-ajax.php'),
-//   'nonce' => wp_create_nonce('my_ajax_nonce'),
-// ]);
-
-// JS side:
-(function ($) {
-  function saveUserPreference(key, value) {
-    return $.ajax({
-      url:      MyAjax.url,
-      type:     'POST',
-      dataType: 'json',
-      data: {
-        action: 'save_user_preference',  // matches wp_ajax_save_user_preference
-        nonce:  MyAjax.nonce,
-        key,
-        value,
-      },
-    });
-  }
-
-  $('#theme-toggle').on('change', function () {
-    const isDark = $(this).is(':checked');
-    saveUserPreference('color_scheme', isDark ? 'dark' : 'light')
-      .done(res => {
-        if (!res.success) alert('Could not save preference: ' + res.data);
-      });
+$.fn.tooltip = function(options) {
+  var opts = $.extend({}, $.fn.tooltip.defaults, options);
+  return this.each(function() {
+    $(this).attr('title', opts.prefix + $(this).data('tip'));
   });
-}(jQuery));
-
-// PHP handler:
-// add_action('wp_ajax_save_user_preference', function() {
-//   check_ajax_referer('my_ajax_nonce', 'nonce');
-//   $key   = sanitize_key($_POST['key']);
-//   $value = sanitize_text_field($_POST['value']);
-//   update_user_meta(get_current_user_id(), $key, $value);
-//   wp_send_json_success();
-// });
+};
+$.fn.tooltip.defaults = { prefix: 'Tip: ' };
 ```
 
 ---
 
-**Q7: How do you implement infinite scroll in WordPress using jQuery?**
-
-**A:** Infinite scroll intercepts the "load more" trigger (a button click or scroll sentinel), fires an AJAX request to `admin-ajax.php` with the next page number, and appends the returned HTML to the existing container. Track whether all posts have been loaded to prevent extra requests. A debounce or IntersectionObserver prevents firing multiple requests during fast scrolling.
-
+**Q45: How do you debounce a jQuery scroll or resize handler?**
+**A:** jQuery has no built-in debounce; implement one manually and pass the returned function to `.on()` to throttle execution.
 ```javascript
-(function ($) {
-  let page      = 2;
-  let loading   = false;
-  let exhausted = false;
-
-  function loadMorePosts() {
-    if (loading || exhausted) return;
-    loading = true;
-    $('#load-more-btn').text('Loading…').prop('disabled', true);
-
-    $.post(MyTheme.ajaxurl, {
-      action:    'load_more_posts',
-      nonce:     MyTheme.nonce,
-      page,
-      category:  MyTheme.currentCategory,
-    })
-      .done(function (res) {
-        if (!res.success || !res.data.html) {
-          exhausted = true;
-          $('#load-more-btn').text('No more posts').prop('disabled', true);
-          return;
-        }
-        const $newPosts = $(res.data.html);
-        $('#posts-grid').append($newPosts);
-        $newPosts.hide().fadeIn(400); // subtle appearance animation
-        page++;
-        if (res.data.is_last_page) {
-          exhausted = true;
-          $('#load-more-btn').hide();
-        }
-      })
-      .fail(function () {
-        alert('Failed to load posts. Please try again.');
-      })
-      .always(function () {
-        loading = false;
-        $('#load-more-btn').text('Load More').prop('disabled', false);
-      });
-  }
-
-  $('#load-more-btn').on('click', loadMorePosts);
-
-  // Optional: auto-trigger when sentinel enters viewport
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) loadMorePosts();
-    });
-    observer.observe(document.getElementById('scroll-sentinel'));
-  }
-}(jQuery));
+function debounce(fn, delay) {
+  var timer;
+  return function() {
+    clearTimeout(timer);
+    timer = setTimeout(fn.bind(this), delay);
+  };
+}
+$(window).on('resize.myPlugin', debounce(function() {
+  recalculateLayout();
+}, 200));
 ```
 
 ---
 
-**Q8: How do you handle jQuery form validation before submitting to the WP REST API?**
-
-**A:** Use `.on('submit')` to intercept the form, `.serialize()` or manual collection to gather data, validate each field, display error messages, and only fire the AJAX/REST request when all fields pass. Provide visual feedback for each field state (error/success) and re-enable the submit button after the request completes.
-
+**Q46: How do you lazily initialize a jQuery plugin when its target enters the viewport?**
+**A:** Use the native Intersection Observer inside `.each()` to defer initialization, then `unobserve` after first trigger.
 ```javascript
-(function ($) {
-  const validators = {
-    required: val => val.trim() !== '' || 'This field is required',
-    email:    val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || 'Please enter a valid email',
-    minLen:   (n) => (val) => val.trim().length >= n || `Minimum ${n} characters`,
-  };
-
-  const rules = {
-    name:    [validators.required, validators.minLen(2)],
-    email:   [validators.required, validators.email],
-    message: [validators.required, validators.minLen(10)],
-  };
-
-  function validateField($field) {
-    const name  = $field.attr('name');
-    const value = $field.val();
-    for (const rule of (rules[name] || [])) {
-      const result = rule(value);
-      if (result !== true) {
-        $field.addClass('is-invalid').next('.field-error').text(result).show();
-        return false;
+$.fn.lazyInit = function(initFn) {
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        initFn.call(entry.target);
+        io.unobserve(entry.target);
       }
-    }
-    $field.removeClass('is-invalid').next('.field-error').hide();
-    return true;
-  }
-
-  $('#contact-form')
-    .on('blur', 'input, textarea', function () { validateField($(this)); })
-    .on('submit', function (e) {
-      e.preventDefault();
-      const $form   = $(this);
-      const isValid = $form.find('input, textarea').toArray()
-        .map(el => validateField($(el)))
-        .every(Boolean);
-
-      if (!isValid) return;
-
-      const $btn = $form.find('[type="submit"]').prop('disabled', true).text('Sending…');
-
-      $.ajax({
-        url:         '/wp-json/contact/v1/submit',
-        method:      'POST',
-        contentType: 'application/json',
-        headers:     { 'X-WP-Nonce': MyTheme.nonce },
-        data:        JSON.stringify({
-          name:    $form.find('[name="name"]').val().trim(),
-          email:   $form.find('[name="email"]').val().trim(),
-          message: $form.find('[name="message"]').val().trim(),
-        }),
-      })
-        .done(() => $form.replaceWith('<p class="success">Message sent!</p>'))
-        .fail(xhr  => $form.prepend(`<p class="form-error">${xhr.responseJSON?.message ?? 'Submission failed.'}</p>`))
-        .always(() => $btn.prop('disabled', false).text('Send Message'));
     });
-}(jQuery));
+  });
+  return this.each(function() { io.observe(this); });
+};
+$('.chart').lazyInit(function() { renderChart(this); });
 ```
 
 ---
 
-**Q9: What is the difference between `.prop()`, `.attr()`, and `.data()` in jQuery?**
-
-**A:** `.attr()` reads/writes HTML attributes (the static value in the markup). `.prop()` reads/writes DOM properties (the live runtime value). For `checked`, `disabled`, and `selected`, always use `.prop()` — `.attr()` returns the initial HTML attribute, not the current state. `.data()` reads `data-*` attributes on first access and then uses jQuery's internal cache, meaning changes via `.data()` do not update the DOM attribute.
-
+**Q47: How do you chain sequential async operations with jQuery Deferred?**
+**A:** Return a new promise from a `.then()` callback; jQuery waits for it to resolve before advancing the chain.
 ```javascript
-// attr vs prop for checkbox state
-const $checkbox = $('#subscribe');
-
-$checkbox.attr('checked');   // "checked" if initially checked, undefined otherwise — static
-$checkbox.prop('checked');   // true or false — reflects current user interaction ✓
-
-// Setting disabled state
-$('input').prop('disabled', true);  // correct — sets the DOM property
-$('input').attr('disabled', 'disabled'); // also works but less idiomatic
-
-// data-* — jQuery caches after first read
-const $post = $('[data-post-id="42"]');
-$post.data('postId');                      // reads data-post-id, converts to camelCase, caches
-$post.data('meta', { views: 100 });        // stored in jQuery cache only — NOT written to DOM
-$post.attr('data-post-id');                // still reads from DOM attribute
-
-// To update the DOM attribute too, use .attr()
-$post.attr('data-status', 'published');    // reflected in HTML; queryable via CSS [data-status]
+$.get('/api/step1')
+  .then(function(data) {
+    return $.post('/api/step2', { id: data.id });
+  })
+  .then(function(result) {
+    return $.get('/api/step3?ref=' + result.ref);
+  })
+  .done(function(final) { console.log(final); })
+  .fail(function(err)   { console.error(err); });
 ```
 
 ---
 
-**Q10: How do you avoid memory leaks when using jQuery in a long-lived WordPress admin page?**
-
-**A:** The main sources of leaks in jQuery-heavy admin pages are event listeners on removed DOM nodes, jQuery `.data()` cache entries never cleared, and Deferred callbacks holding closure references. Always call `.off()` before removing elements, use `.remove()` (which cleans jQuery data/events) instead of native `removeChild`, and `.empty()` over `.html('')`. For modals or repeated DOM insertions, keep a reference and call `.remove()` on teardown.
-
+**Q48: How do you hook into the WordPress Heartbeat API with jQuery?**
+**A:** Listen for `heartbeat-send` to add data and `heartbeat-tick` to receive the server response, piggybacking on the existing XHR.
 ```javascript
-(function ($) {
-  // BAD: removes DOM but leaves jQuery data/event cache intact
-  document.getElementById('old-widget').remove();    // native — jQuery unaware
-
-  // GOOD: jQuery's .remove() cleans events and data
-  $('#old-widget').remove();
-
-  // GOOD: .empty() clears children + their jQuery data
-  $('#widget-container').empty().append(newContent);
-
-  // GOOD: Namespaced events make bulk removal easy
-  $(document).on('click.adminPanel', '.tab-btn', switchTab);
-  // On teardown:
-  $(document).off('.adminPanel');
-
-  // GOOD: Modal with full lifecycle management
-  class AdminModal {
-    constructor(templateId) {
-      this.$el = $(document.getElementById(templateId).content.cloneNode(true).firstElementChild);
-      $('body').append(this.$el);
-      this.$el.on('click.modal', '[data-dismiss]', () => this.destroy());
-    }
-    open()    { this.$el.fadeIn(200); }
-    destroy() { this.$el.off('.modal').remove(); } // removes events + element + jQuery cache
-  }
-}(jQuery));
+$(document).on('heartbeat-send', function(e, data) {
+  data.my_check = { post_id: postId };
+});
+$(document).on('heartbeat-tick', function(e, data) {
+  if (data.my_check_response) updateUI(data.my_check_response);
+});
 ```
+
+---
+
+**Q49: How do you implement a publish/subscribe pattern using jQuery custom events?**
+**A:** Use a shared detached jQuery object as an event bus; publishers trigger events on it and subscribers listen with `.on()`.
+```javascript
+var bus = $({});
+
+// Publisher
+bus.trigger('cart:updated', [{ count: 3 }]);
+
+// Subscriber
+bus.on('cart:updated', function(e, payload) {
+  $('#cart-count').text(payload.count);
+});
+```
+
+---
+
+**Q50: How do you incrementally migrate a jQuery-heavy WordPress theme to vanilla JS?**
+**A:** Replace jQuery utilities one at a time with native equivalents (`querySelector`, `fetch`, `classList`). Enqueue jQuery conditionally per page to reduce payload during the transition.
+```javascript
+// jQuery
+$('.nav-toggle').on('click', function() {
+  $('#nav').toggleClass('open');
+});
+
+// Vanilla replacement
+document.querySelector('.nav-toggle')
+  .addEventListener('click', function() {
+    document.getElementById('nav').classList.toggle('open');
+  });
+```
+
+---
