@@ -747,3 +747,88 @@ npx true-cli tests/test.scss
 # ✔ button-variant mixin: outputs correct background color
 ```
 
+
+**Q46: How do you use SCSS `@warn` and `@error` for safer mixins?**
+**A:** `@warn` prints a message to stderr at compile time; `@error` halts compilation. Use them to guide correct mixin usage.
+```scss
+@mixin font-size($size) {
+  @if type-of($size) != 'number' {
+    @error "font-size expects a number, got #{$size}";
+  }
+  @if unit($size) == '' {
+    @warn "font-size: unitless value #{$size} — assuming rem";
+    $size: $size * 1rem;
+  }
+  font-size: $size;
+}
+.text { @include font-size(1.2rem); }  // OK
+.bad  { @include font-size(1.2);    }  // Warn: unitless
+```
+
+**Q47: How do you generate utility classes with `@each` over a SCSS map?**
+**A:** Loop over a map to produce systematic classes without repetition — ideal for spacing, color, and typography utilities.
+```scss
+$spacings: ('0': 0, '1': 0.25rem, '2': 0.5rem, '3': 1rem, '4': 2rem);
+
+@each $key, $val in $spacings {
+  .m-#{$key}  { margin: $val; }
+  .mt-#{$key} { margin-top: $val; }
+  .mb-#{$key} { margin-bottom: $val; }
+  .p-#{$key}  { padding: $val; }
+}
+// Output: .m-0 { margin: 0 } .m-1 { margin: 0.25rem } …
+```
+
+**Q48: What is `@use 'sass:math'` and why replace division `/` with `math.div()`?**
+**A:** In Dart Sass, `/` for division is deprecated. Import the built-in `sass:math` module and use `math.div()` to avoid future breakage.
+```scss
+@use 'sass:math';
+
+.column {
+  // Old (deprecated): width: 100% / 3;
+  width: math.div(100%, 3); // 33.3333%
+}
+
+@mixin grid($cols: 12) {
+  @for $i from 1 through $cols {
+    .col-#{$i} { width: math.div(100%, $cols) * $i; }
+  }
+}
+@include grid();
+```
+
+**Q49: How do you scope SCSS variables per-component using `@use` namespaces?**
+**A:** Each `@use` creates a namespace, preventing variable collisions. Use `as *` sparingly — prefer explicit namespaces in large codebases.
+```scss
+// tokens/_colors.scss
+$brand: #0d7377;
+$accent: #ffd700;
+
+// components/_card.scss
+@use '../tokens/colors' as colors;
+@use '../tokens/spacing' as sp;
+
+.card {
+  border-left: 4px solid colors.$brand;
+  padding: sp.$md;
+  &:hover { border-color: colors.$accent; }
+}
+```
+
+**Q50: How do you build a fluid typography scale with SCSS and `clamp()`?**
+**A:** Combine SCSS math with CSS `clamp()` to create viewport-responsive font sizes without media queries.
+```scss
+@use 'sass:math';
+
+// fluid($min-size, $max-size, $min-vw: 320px, $max-vw: 1200px)
+@function fluid($min, $max, $min-vw: 320px, $max-vw: 1200px) {
+  $slope: math.div($max - $min, $max-vw - $min-vw);
+  $intercept: $min - $slope * $min-vw;
+  @return clamp(#{$min}, #{$slope * 100vw + $intercept}, #{$max});
+}
+
+h1 { font-size: fluid(1.75rem, 3.5rem); }
+h2 { font-size: fluid(1.5rem,  2.5rem); }
+p  { font-size: fluid(1rem,    1.25rem); }
+// → clamp(1.75rem, 2.24vw + 1rem, 3.5rem)
+```
