@@ -444,3 +444,468 @@ add_action('wp_enqueue_scripts', function () {
 - Focus management on step transitions is required for keyboard-only users
 - Final `fetch()` call to the REST API replaces the traditional `$.ajax` for cleaner async/await code
 - Server-side validation in the PHP REST callback is still required — client-side is UX only
+
+---
+
+## Scenario 4: Fixing jQuery Conflicts from Multiple Plugin Versions
+
+**Scenario:**
+A WordPress site has three plugins each bundling their own copy of jQuery (1.12, 2.x, and 3.x). The plugins deregister core jQuery and enqueue their own, causing `$ is not a function` errors and broken UI across the admin and front-end.
+
+**Challenge:**
+Force all plugins to share WordPress's bundled jQuery without editing plugin source files, and ensure the `$` alias works safely in all custom code.
+
+**Solution:**
+
+1. Identify which plugins are hijacking jQuery using Query Monitor or the browser console.
+
+```bash
+# In browser console — check which jQuery version is active and whether multiple copies loaded
+jQuery.fn.jquery          // active version
+window.jQuery === window.$  // true if aliases match
+```
+
+2. Deregister each offending plugin's jQuery and substitute WordPress core's version via a mu-plugin (this runs before regular plugins).
+
+```php
+<?php
+// wp-content/mu-plugins/normalize-jquery.php
+
+/**
+ * Force all plugins to use WordPress's bundled jQuery.
+ * Runs at priority 1 so it fires before most plugin enqueue callbacks.
+ */
+add_action( 'wp_enqueue_scripts', 'normalize_jquery', 1 );
+add_action( 'admin_enqueue_scripts', 'normalize_jquery', 1 );
+
+function normalize_jquery() {
+    // Slugs known to ship their own jQuery
+    $offending_handles = [
+        'plugin-a-jquery',
+        'plugin-b-jquery',
+        'slider-lib-jquery',
+    ];
+
+    foreach ( $offending_handles as $handle ) {
+        wp_deregister_script( $handle );
+        // Re-register under the same handle, pointing to WP core's jQuery
+        wp_register_script( $handle, false, [ 'jquery' ], null, false );
+    }
+}
+```
+
+3. Wrap all custom JavaScript in the no-conflict wrapper so `$` is always safe regardless of load order.
+
+```javascript
+// my-theme.js — always use this pattern in WordPress
+(function ($) {
+    'use strict';
+
+    // $ is guaranteed to be jQuery here, regardless of other libraries
+    $(document).ready(function () {
+        $('.my-component').on('click', function () {
+            $(this).toggleClass('is-active');
+        });
+    });
+
+}(jQuery));
+```
+
+4. If a plugin uses `$` in inline scripts outside any wrapper, patch it with `wp_add_inline_script`.
+
+```php
+<?php
+// Prepend a noConflict reset before the offending plugin's inline code
+add_action( 'wp_enqueue_scripts', function () {
+    wp_add_inline_script( 'plugin-a-scripts', 'var $ = jQuery;', 'before' );
+}, 20 );
+```
+
+5. Verify the fix: open browser devtools Network tab, filter by `jquery`, and confirm only one jQuery file loads.
+
+```javascript
+// Console verification
+console.log('jQuery version:', jQuery.fn.jquery);
+console.log('Single instance:', jQuery === window.jQuery); // must be true
+```
+
+---
+
+## Scenario 5: Migrating WordPress AJAX Calls to the REST API with fetch()
+
+**Scenario:**
+A WordPress theme has dozens of `$.ajax({ url: ajaxurl, action: '...' })` calls hitting `admin-ajax.php`. Every request goes through the full WordPress admin bootstrap (~180 ms overhead), and the code is difficult to test. The team wants to migrate to the WP REST API using the native `fetch()` API.
+
+**Challenge:**
+Replace `admin-ajax.php` handlers with properly registered REST endpoints, update all JavaScript callers, and handle authentication/nonce differences between the two approaches.
+
+**Solution:**
+
+1. Register a namespaced REST route to replace the old AJAX action.
+
+```php
+<?php
+// Before: admin-ajax.php handler
+add_action( 'wp_ajax_get_related_posts', 'ajax_get_related_posts' );
+function ajax_get_related_posts() {
+    check_ajax_referer( 'related_posts', 'nonce' );
+    $posts = get_related_posts( absint( $_POST['post_id'] ) );
+    wp_send_json_success( $posts );
+}
+
+// After: REST endpoint (register in your plugin bootstrap)
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'my-theme/v1', '/related-posts/(?P<id>\d+)', [
+        'methods'             => 'GET',
+        'callback'            => 'rest_get_related_posts',
+        'permission_callback' => '__return_true', // public; add auth check if needed
+        'args'                => [
+            'id' => [
+                'validate_callback' => fn( $v ) => is_numeric( $v ),
+                'sanitize_callback' => 'absint',
+            ],
+        ],
+    ] );
+} );
+
+function rest_get_related_posts( WP_REST_Request $request ) {
+    $posts = get_related_posts( $request->get_param( 'id' ) );
+    if ( empty( $posts ) ) {
+        return new WP_Error( 'no_posts', 'No related posts found.', [ 'status' => 404 ] );
+    }
+    return rest_ensure_response( $posts );
+}
+```
+
+2. Pass the REST nonce (not the AJAX nonce) to JavaScript via `wp_localize_script`.
+
+```php
+<?php
+wp_localize_script( 'my-theme', 'ThemeAPI', [
+    'root'  => esc_url_raw( rest_url() ),       // e.g. https://example.com/wp-json/
+    'nonce' => wp_create_nonce( 'wp_rest' ),    // WP REST nonce — different from AJAX nonces
+] );
+```
+
+3. Replace every `$.ajax` call with `fetch()` using a shared helper to keep callers clean.
+
+```javascript
+// api.js — centralised REST client
+const API = {
+    /**
+     * @param {string} path    e.g. 'my-theme/v1/related-posts/42'
+     * @param {object} options fetch init overrides
+     */
+    async get(path, options = {}) {
+        const res = await fetch(`${ThemeAPI.root}${path}`, {
+            method: 'GET',
+            headers: {
+                'X-WP-Nonce': ThemeAPI.nonce,
+                'Content-Type': 'application/json',
+            },
+            ...options,
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+            throw new Error(err.message || `Request failed: ${res.status}`);
+        }
+
+        return res.json();
+    },
+
+    async post(path, body, options = {}) {
+        return this.get(path, {
+            method: 'POST',
+            body: JSON.stringify(body),
+            ...options,
+        });
+    },
+};
+
+// Before (jQuery AJAX):
+// $.ajax({ url: ajaxurl, type: 'POST', data: { action: 'get_related_posts', post_id: 42 } })
+
+// After (fetch via helper):
+(async function () {
+    try {
+        const posts = await API.get('my-theme/v1/related-posts/42');
+        renderRelatedPosts(posts);
+    } catch (err) {
+        console.error('[RelatedPosts]', err.message);
+    }
+}());
+```
+
+4. For any REST route that needs authentication (logged-in users only), use `wp_get_current_user()` inside the permission callback rather than the old `is_user_logged_in()` AJAX check.
+
+```php
+<?php
+'permission_callback' => function () {
+    return current_user_can( 'edit_posts' );
+},
+```
+
+5. Verify the migration with browser devtools: REST responses arrive at `/wp-json/…` with proper HTTP status codes, rather than always returning `200` from `admin-ajax.php`.
+
+---
+
+## Scenario 6: Debugging Event Delegation Issues in Dynamic Admin Content
+
+**Scenario:**
+A WordPress plugin adds a custom meta box. JavaScript inside the meta box uses direct event binding (`$('.my-btn').on('click', ...)`). After the admin loads additional meta boxes via Gutenberg's SlotFill or a custom AJAX tab loader, the buttons in newly injected content are completely unresponsive.
+
+**Challenge:**
+Identify why the handlers are not firing on dynamically added elements and refactor the event binding to work reliably with any content injected at any time.
+
+**Solution:**
+
+1. Understand the root cause: direct binding attaches the listener only to elements that exist in the DOM at bind time. Elements added later never get the handler.
+
+```javascript
+// BROKEN — only binds to .my-btn elements present at DOMContentLoaded
+$('.my-btn').on('click', function () {
+    handleClick($(this));
+});
+
+// Also broken when called after an AJAX load but before the new HTML is in the DOM
+$(document).ready(function () {
+    $.ajax({ url: ajaxurl, ... }).done(function (html) {
+        $('#meta-container').html(html);
+        // At this point the new .my-btn elements exist, but if this pattern
+        // is called elsewhere without re-binding, they won't respond.
+    });
+});
+```
+
+2. Switch to delegated binding: attach the listener to a stable ancestor and pass the selector as the second argument.
+
+```javascript
+// FIXED — delegate from a stable ancestor
+// '#postbox-container' is always in the DOM; '.my-btn' can be anywhere inside it
+$('#postbox-container').on('click', '.my-btn', function (e) {
+    e.preventDefault();
+    handleClick($(this));
+});
+
+// For front-end or unknown ancestors, delegate from document as a last resort
+$(document).on('click', '.my-btn', function (e) {
+    e.preventDefault();
+    handleClick($(this));
+});
+```
+
+3. Choose the narrowest stable ancestor to avoid event bubbling through the entire document tree — this matters for performance in complex admin screens.
+
+```javascript
+(function ($) {
+    'use strict';
+
+    // Stable wrapper provided by our meta box — always present after page load
+    const $root = $('#my-plugin-meta-box');
+
+    // Delegate all interactions from a single attach point
+    $root
+        .on('click',  '.js-save-row',   onSaveRow)
+        .on('click',  '.js-delete-row', onDeleteRow)
+        .on('change', '.js-toggle',     onToggle);
+
+    function onSaveRow(e) {
+        e.preventDefault();
+        const $row = $(this).closest('.data-row');
+        // $(this) correctly refers to the clicked element, even if injected after init
+        saveRow($row.data('id'), $row.find('.js-value').val());
+    }
+
+    function onDeleteRow(e) {
+        e.preventDefault();
+        const $row = $(this).closest('.data-row');
+        $row.fadeOut(200, function () { $(this).remove(); });
+    }
+
+    function onToggle() {
+        const $row = $(this).closest('.data-row');
+        $row.toggleClass('is-enabled', $(this).is(':checked'));
+    }
+
+    // When AJAX injects new rows, no re-binding needed — delegation handles it
+    function loadRows() {
+        $.get(ajaxurl, { action: 'my_plugin_get_rows' }).done(function (html) {
+            $root.find('.rows-container').html(html);
+            // Events just work — nothing to wire up
+        });
+    }
+
+    loadRows();
+
+}(jQuery));
+```
+
+4. Debug delegation issues using the browser console to verify event bubbling and confirm the selector matches.
+
+```javascript
+// Temporarily log every click bubbling through the stable ancestor
+$('#my-plugin-meta-box').on('click', function (e) {
+    console.log('clicked element:', e.target, 'matches .js-save-row:', $(e.target).is('.js-save-row'));
+});
+
+// jQuery's internal event data — useful to confirm handlers are registered
+$._data($('#my-plugin-meta-box')[0], 'events');
+```
+
+---
+
+## Scenario 7: Optimizing a jQuery-Heavy Theme for Performance
+
+**Scenario:**
+A WordPress theme scores 42/100 on PageSpeed Insights for mobile. The audit flags render-blocking jQuery, a 38 KB custom script file executing on every page, and a scroll handler firing hundreds of times per second. The site uses jQuery for a sticky header, a counter animation, lazy-load images, and a tab component.
+
+**Challenge:**
+Reduce JavaScript execution time, eliminate render-blocking scripts, and smooth out scroll and resize handlers without a full framework rewrite.
+
+**Solution:**
+
+1. Move jQuery and all dependent scripts to the footer and add `defer` where applicable.
+
+```php
+<?php
+// functions.php
+add_action( 'wp_enqueue_scripts', function () {
+    // Re-register jQuery to load in the footer
+    wp_deregister_script( 'jquery' );
+    wp_register_script(
+        'jquery',
+        includes_url( '/js/jquery/jquery.min.js' ),
+        [],
+        '3.7.1',
+        [ 'strategy' => 'defer', 'in_footer' => true ]   // WP 6.3+ loading strategy
+    );
+    wp_enqueue_script( 'jquery' );
+
+    wp_enqueue_script(
+        'my-theme',
+        get_theme_file_uri( 'js/theme.min.js' ),
+        [ 'jquery' ],
+        THEME_VERSION,
+        [ 'strategy' => 'defer', 'in_footer' => true ]
+    );
+}, 20 );
+```
+
+2. Split the monolithic script into page-specific modules and conditionally load them.
+
+```php
+<?php
+add_action( 'wp_enqueue_scripts', function () {
+    // Core script always loaded
+    wp_enqueue_script( 'theme-core', get_theme_file_uri( 'js/core.min.js' ), ['jquery'], THEME_VERSION, true );
+
+    // Only load the counter animation on pages that have the counter block
+    if ( has_block( 'my-theme/counter' ) || is_page_template( 'about.php' ) ) {
+        wp_enqueue_script( 'theme-counter', get_theme_file_uri( 'js/counter.min.js' ), ['jquery'], THEME_VERSION, true );
+    }
+
+    // Tabs only on pages that need them
+    if ( is_singular() && has_shortcode( get_post()->post_content, 'tabs' ) ) {
+        wp_enqueue_script( 'theme-tabs', get_theme_file_uri( 'js/tabs.min.js' ), ['jquery'], THEME_VERSION, true );
+    }
+} );
+```
+
+3. Throttle the scroll handler with `requestAnimationFrame` instead of a naive jQuery `.on('scroll')` call.
+
+```javascript
+// BEFORE — fires every scroll event (~hundreds/sec)
+$(window).on('scroll', function () {
+    if ($(window).scrollTop() > 80) {
+        $('header').addClass('is-sticky');
+    } else {
+        $('header').removeClass('is-sticky');
+    }
+});
+
+// AFTER — throttled via rAF (fires at most once per animation frame, ~60/sec)
+(function ($) {
+    'use strict';
+
+    let rafPending  = false;
+    let lastScrollY = 0;
+    const $header   = $('header');
+    const THRESHOLD = 80;
+
+    function updateHeader() {
+        $header.toggleClass('is-sticky', lastScrollY > THRESHOLD);
+        rafPending = false;
+    }
+
+    $(window).on('scroll.stickyHeader', function () {
+        lastScrollY = window.scrollY;
+        if (!rafPending) {
+            rafPending = true;
+            window.requestAnimationFrame(updateHeader);
+        }
+    });
+
+}(jQuery));
+```
+
+4. Debounce the resize handler to avoid layout thrashing on window resize.
+
+```javascript
+(function ($) {
+    'use strict';
+
+    function debounce(fn, delay) {
+        let timer;
+        return function (...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    const onResize = debounce(function () {
+        // Expensive layout recalculation — runs only 150 ms after resizing stops
+        recalculateMasonryLayout();
+    }, 150);
+
+    $(window).on('resize.masonry', onResize);
+
+}(jQuery));
+```
+
+5. Use `IntersectionObserver` (not a scroll listener) to trigger counter animations and lazy loading.
+
+```javascript
+(function ($) {
+    'use strict';
+
+    if (!('IntersectionObserver' in window)) return; // bail for very old browsers
+
+    const counterObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+
+            const $el    = $(entry.target);
+            const target = parseInt($el.data('count-to'), 10);
+
+            $({ count: 0 }).animate({ count: target }, {
+                duration: 1500,
+                easing:   'swing',
+                step:     function () { $el.text(Math.floor(this.count).toLocaleString()); },
+                complete: function () { $el.text(target.toLocaleString()); },
+            });
+
+            counterObserver.unobserve(entry.target); // animate once only
+        });
+    }, { threshold: 0.3 });
+
+    $('[data-count-to]').each(function () {
+        counterObserver.observe(this);
+    });
+
+}(jQuery));
+```
+
+6. Measure the improvement with Chrome DevTools Performance tab before and after: target < 50 ms Total Blocking Time and no long tasks from scroll handlers.
+
+---

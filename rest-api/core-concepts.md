@@ -2,46 +2,6 @@
 
 > WordPress REST API essentials for Senior Engineer interviews.
 
-```mermaid
-flowchart TD
-    CLIENT([Client\nbrowser / mobile app\n/ external service])
-
-    CLIENT -->|"HTTP Request\nGET /wp-json/wp/v2/posts/42\nAuthorization: Bearer token\nAccept: application/json"| NGINX
-
-    NGINX["Nginx / Apache\ntry_files → index.php"]
-    NGINX --> WP["WordPress Bootstrap\nwp-load.php"]
-
-    WP --> RESTINIT["REST API Init\nrest_api_init hook fires\nall routes registered"]
-
-    RESTINIT --> ROUTER["WP_REST_Server::dispatch()\nMatch request path + HTTP method\nto registered route"]
-
-    ROUTER -->|"No match"| E404["404 JSON Error\n{code: rest_no_route}"]
-    ROUTER -->|"Route matched"| AUTHCHECK
-
-    AUTHCHECK{"Authentication\nCheck\ncurrent_user_can()\nor custom callback"}
-    AUTHCHECK -->|"401 / 403"| AUTHERR["JSON Error Response\n{code: rest_forbidden}"]
-    AUTHCHECK -->|"Authorised"| VALIDATE
-
-    VALIDATE{"Parameter\nValidation\nargs schema:\nrequired, type,\nsanitize_callback"}
-    VALIDATE -->|"Invalid params"| VALERR["400 JSON Error\n{code: rest_invalid_param}"]
-    VALIDATE -->|"Valid"| CALLBACK
-
-    CALLBACK["Route Callback\nWP_REST_Posts_Controller\n::get_item()"]
-    CALLBACK --> QUERY["WP_Query / wpdb\nFetch data from MySQL"]
-    QUERY --> PREPARE["Prepare Response\nWP_REST_Response\napply_filters: rest_prepare_post"]
-    PREPARE --> LINKS["Add HAL Links\n_links: self, collection,\nauthor, replies"]
-    LINKS --> CACHE["Set Cache Headers\nCache-Control / ETag"]
-
-    CACHE -->|"200 OK\nContent-Type: application/json"| CLIENT
-
-    style CLIENT fill:#3498db,color:#fff
-    style AUTHCHECK fill:#e74c3c,color:#fff
-    style VALIDATE fill:#f39c12,color:#fff
-    style CALLBACK fill:#27ae60,color:#fff
-    style E404 fill:#c0392b,color:#fff
-    style AUTHERR fill:#c0392b,color:#fff
-    style VALERR fill:#c0392b,color:#fff
-```
 
 ---
 

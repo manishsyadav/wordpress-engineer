@@ -514,3 +514,568 @@ wp cache flush
 **Rollback plan:**
 - Update DNS back to old server IP (60-second TTL propagates quickly).
 - Restore any writes that happened after cutover via binary log.
+
+---
+
+## Scenario 4: Migrating WordPress from Shared Hosting to AWS (EC2 + RDS + S3 + CloudFront)
+
+**Scenario:**
+A WordPress site on shared cPanel hosting has outgrown its environment: slow response times, frequent 503s during peaks, and no SSH or custom server config access. The business needs a migration to AWS with minimal downtime and a clear rollback path.
+
+**Challenge:**
+Move WordPress files, database, and media to AWS (EC2 + RDS + S3 + CloudFront) while keeping the live shared-hosting site serving traffic until DNS cutover.
+
+**Solution:**
+
+1. **Provision AWS infrastructure:**
+
+```bash
+#!/bin/bash
+# Create VPC, subnets, and security groups (abbreviated — assumes VPC/subnet IDs exist)
+REGION="us-east-1"
+
+# RDS MySQL 8.0
+aws rds create-db-instance \
+  --db-instance-identifier wp-prod-db \
+  --db-instance-class db.t3.medium \
+  --engine mysql --engine-version 8.0 \
+  --master-username wpuser \
+  --master-user-password "$DB_PASS" \
+  --db-name wordpress \
+  --allocated-storage 50 --storage-type gp3 \
+  --multi-az \
+  --backup-retention-period 7 \
+  --vpc-security-group-ids sg-db \
+  --db-subnet-group-name wp-db-subnets
+
+# S3 bucket for media
+aws s3api create-bucket --bucket wp-prod-media --region $REGION
+aws s3api put-bucket-cors --bucket wp-prod-media \
+  --cors-configuration '{"CORSRules":[{"AllowedOrigins":["https://example.com"],"AllowedMethods":["GET"],"MaxAgeSeconds":3600}]}'
+
+# EC2 via launch template (bootstrap installs Nginx + PHP 8.2 + WP-CLI)
+aws ec2 run-instances \
+  --image-id ami-0c02fb55956c7d316 \
+  --instance-type t3.medium \
+  --key-name wp-key \
+  --security-group-ids sg-web \
+  --subnet-id subnet-private-a \
+  --iam-instance-profile Name=wp-instance-profile \
+  --user-data file://bootstrap.sh \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=wp-prod}]'
+```
+
+2. **Migrate the database:**
+
+```bash
+# On shared hosting: export with proper charset
+mysqldump -u old_user -p old_db \
+  --single-transaction \
+  --routines \
+  --triggers \
+  --set-gtid-purged=OFF \
+  | gzip > wordpress-$(date +%Y%m%d).sql.gz
+
+# Upload to RDS via a temporary EC2 bastion
+scp wordpress-*.sql.gz ec2-user@bastion:/tmp/
+ssh ec2-user@bastion "zcat /tmp/wordpress-*.sql.gz \
+  | mysql -h wp-prod-db.abc123.us-east-1.rds.amazonaws.com \
+          -u wpuser -p'$DB_PASS' wordpress"
+```
+
+3. **Sync uploads to S3:**
+
+```bash
+# Install WP Offload Media Lite on the new server, then bulk-sync existing uploads
+aws s3 sync /var/www/html/wp-content/uploads/ \
+  s3://wp-prod-media/uploads/ \
+  --acl public-read \
+  --cache-control "max-age=31536000,public" \
+  --exclude "*.php"
+
+# Keep syncing incrementally until DNS cutover (run every 15 min via cron)
+# crontab: */15 * * * * aws s3 sync /var/www/html/wp-content/uploads/ s3://wp-prod-media/uploads/ --acl public-read
+```
+
+4. **Configure CloudFront distribution:**
+
+```bash
+aws cloudfront create-distribution --distribution-config '{
+  "Origins": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "Id": "ec2-origin",
+        "DomainName": "10.0.1.50",
+        "CustomOriginConfig": {"HTTPPort": 80, "OriginProtocolPolicy": "http-only"}
+      },
+      {
+        "Id": "s3-media",
+        "DomainName": "wp-prod-media.s3.amazonaws.com",
+        "S3OriginConfig": {"OriginAccessIdentity": ""}
+      }
+    ]
+  },
+  "CacheBehaviors": {
+    "Quantity": 1,
+    "Items": [{
+      "PathPattern": "/wp-content/uploads/*",
+      "TargetOriginId": "s3-media",
+      "ViewerProtocolPolicy": "redirect-to-https",
+      "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+    }]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "ec2-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+  },
+  "Enabled": true,
+  "HttpVersion": "http2"
+}'
+```
+
+5. **Update wp-config.php on the new EC2:**
+
+```php
+// wp-config.php on EC2
+define('DB_HOST',     'wp-prod-db.abc123.us-east-1.rds.amazonaws.com');
+define('DB_NAME',     'wordpress');
+define('DB_USER',     'wpuser');
+define('DB_PASSWORD', getenv('DB_PASSWORD')); // set via SSM Parameter Store in bootstrap
+
+// Tell WordPress it's behind a load balancer / CloudFront
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+
+define('WP_HOME',    'https://example.com');
+define('WP_SITEURL', 'https://example.com');
+```
+
+6. **DNS cutover (low-risk):**
+   - Set TTL to 60 seconds 24 hours before cutover.
+   - Maintenance mode on old site: `wp maintenance-mode activate`
+   - Run final `mysqldump` → import and final S3 sync.
+   - `wp search-replace 'http://old-host.cpaneldomain.com' 'https://example.com' --all-tables`
+   - Update Route 53 A record to point to the CloudFront distribution domain.
+   - Monitor for 30 minutes; keep old server live for 48 hours as rollback.
+
+---
+
+## Scenario 5: Auto-Scaling WordPress Fleet Behind an AWS Application Load Balancer
+
+**Scenario:**
+A WordPress site has unpredictable traffic spikes (marketing campaigns, product launches). The current fixed-size fleet of 3 EC2 instances either over-provisions (expensive) or under-serves during spikes. The team wants auto-scaling that adds capacity within 3 minutes of a spike and scales down overnight to cut costs.
+
+**Challenge:**
+Build a stateless WordPress fleet that can scale horizontally behind an ALB, with WordPress files on EFS and media on S3 so every instance is identical and interchangeable.
+
+**Solution:**
+
+1. **Create a hardened Launch Template (user data bootstraps each new instance):**
+
+```bash
+#!/bin/bash
+# bootstrap.sh — runs on every new EC2 instance at launch
+set -euo pipefail
+
+# Mount EFS for shared WordPress code
+EFS_ID="fs-0abc123456"
+apt-get install -y amazon-efs-utils
+mkdir -p /var/www/wordpress
+mount -t efs -o tls,iam ${EFS_ID}:/ /var/www/wordpress
+echo "${EFS_ID}:/ /var/www/wordpress efs _netdev,tls,iam 0 0" >> /etc/fstab
+
+# Install Nginx + PHP-FPM 8.2
+add-apt-repository -y ppa:ondrej/php
+apt-get install -y nginx php8.2-fpm php8.2-mysql php8.2-redis php8.2-xml php8.2-mbstring
+
+# Retrieve DB credentials from Secrets Manager (no plaintext on disk)
+DB_SECRET=$(aws secretsmanager get-secret-value \
+  --secret-id wp/prod/db --query SecretString --output text)
+
+# Signal to the ASG lifecycle hook that instance is ready
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+aws autoscaling complete-lifecycle-action \
+  --lifecycle-hook-name wp-launch-hook \
+  --auto-scaling-group-name wp-asg \
+  --instance-id "$INSTANCE_ID" \
+  --lifecycle-action-result CONTINUE
+```
+
+2. **Create the Auto Scaling Group with lifecycle hooks and target tracking:**
+
+```bash
+# Create ASG
+aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name wp-asg \
+  --launch-template LaunchTemplateName=wp-lt,Version='$Latest' \
+  --min-size 2 --max-size 12 --desired-capacity 2 \
+  --target-group-arns "$TG_ARN" \
+  --vpc-zone-identifier "subnet-priv-a,subnet-priv-b,subnet-priv-c" \
+  --health-check-type ELB \
+  --health-check-grace-period 300 \
+  --default-instance-warmup 120
+
+# Lifecycle hook: gives bootstrap.sh time to complete before ALB adds the instance
+aws autoscaling put-lifecycle-hook \
+  --auto-scaling-group-name wp-asg \
+  --lifecycle-hook-name wp-launch-hook \
+  --lifecycle-transition autoscaling:EC2_INSTANCE_LAUNCHING \
+  --heartbeat-timeout 300 \
+  --default-result ABANDON
+
+# Scale-out: target 60% CPU (adds instances when CPU stays above 60% for 3 min)
+aws autoscaling put-scaling-policy \
+  --auto-scaling-group-name wp-asg \
+  --policy-name cpu-scale-out \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-configuration \
+    '{"PredefinedMetricSpecification":{"PredefinedMetricType":"ASGAverageCPUUtilization"},"TargetValue":60.0,"ScaleInCooldown":300,"ScaleOutCooldown":60}'
+
+# Scale on ALB RequestCountPerTarget (better signal for WordPress than CPU alone)
+aws autoscaling put-scaling-policy \
+  --auto-scaling-group-name wp-asg \
+  --policy-name requests-per-target \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-configuration "{
+    \"PredefinedMetricSpecification\": {
+      \"PredefinedMetricType\": \"ALBRequestCountPerTarget\",
+      \"ResourceLabel\": \"app/wp-alb/abc123/targetgroup/wp-tg/def456\"
+    },
+    \"TargetValue\": 1000.0
+  }"
+```
+
+3. **Configure the ALB target group and health check:**
+
+```bash
+aws elbv2 create-target-group \
+  --name wp-tg \
+  --protocol HTTP --port 80 \
+  --vpc-id "$VPC_ID" \
+  --health-check-path /wp-json/ \
+  --health-check-interval-seconds 15 \
+  --healthy-threshold-count 2 \
+  --unhealthy-threshold-count 3 \
+  --matcher HttpCode=200
+
+# Stickiness OFF — sessions stored in Redis, so any instance can serve any user
+aws elbv2 modify-target-group-attributes \
+  --target-group-arn "$TG_ARN" \
+  --attributes Key=stickiness.enabled,Value=false
+```
+
+4. **Scheduled scaling for overnight cost savings:**
+
+```bash
+# Scale down to 1 instance at midnight (UTC) — low traffic period
+aws autoscaling put-scheduled-action \
+  --auto-scaling-group-name wp-asg \
+  --scheduled-action-name scale-down-night \
+  --recurrence "0 0 * * *" \
+  --min-size 1 --max-size 12 --desired-capacity 1
+
+# Scale back up at 7 AM UTC before business hours
+aws autoscaling put-scheduled-action \
+  --auto-scaling-group-name wp-asg \
+  --scheduled-action-name scale-up-morning \
+  --recurrence "0 7 * * *" \
+  --min-size 2 --max-size 12 --desired-capacity 2
+```
+
+5. **WordPress configuration for stateless operation (wp-config.php additions):**
+
+```php
+// Redis object cache (Predis/PhpRedis drop-in)
+define('WP_CACHE', true);
+define('WP_REDIS_HOST', 'wp-redis.abc123.cache.amazonaws.com');
+define('WP_REDIS_PORT', 6379);
+define('WP_REDIS_AUTH', getenv('REDIS_AUTH_TOKEN'));
+define('WP_REDIS_TLS',  true);
+
+// Disable WordPress cron — use EventBridge Scheduler instead (avoids cron pileup on scale-out)
+define('DISABLE_WP_CRON', true);
+
+// Trust X-Forwarded-Proto from ALB
+if ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+```
+
+---
+
+## Scenario 6: GCP Cloud SQL Failover for WordPress with Zero Downtime
+
+**Scenario:**
+A WordPress site runs on GCP Compute Engine with a Cloud SQL for MySQL (High Availability) instance. During a planned maintenance window, the HA failover needs to be tested, and a runbook created so the on-call team can execute it within 5 minutes if a real outage occurs.
+
+**Challenge:**
+Execute a manual Cloud SQL failover, verify WordPress recovers automatically, and automate monitoring so the team is alerted within 60 seconds of a failover event.
+
+**Solution:**
+
+1. **Verify HA is configured and understand the topology:**
+
+```bash
+# Check HA configuration
+gcloud sql instances describe wordpress-prod \
+  --format="yaml(name, databaseVersion, settings.availabilityType, failoverReplica)"
+
+# Expected output:
+# settings:
+#   availabilityType: REGIONAL   ← required for HA failover
+# failoverReplica:
+#   available: true
+#   name: wordpress-prod-replica
+```
+
+2. **Configure WordPress to handle brief connection interruptions gracefully:**
+
+```php
+// wp-config.php — increase MySQL connect retries and timeout tolerance
+define('DB_HOST', '/cloudsql/project-id:us-central1:wordpress-prod');
+// If using Cloud SQL Proxy TCP mode:
+// define('DB_HOST', '127.0.0.1:3306');
+
+// Increase wpdb connection retry (add to wp-config.php via mu-plugin)
+```
+
+```php
+// mu-plugins/db-reconnect.php — retry on transient connection loss during failover
+add_filter('query', function(string $query) {
+    global $wpdb;
+    static $retries = 0;
+    if ($wpdb->last_error && str_contains($wpdb->last_error, 'MySQL server has gone away') && $retries < 3) {
+        $retries++;
+        $wpdb->check_connection();
+        return $query; // wpdb will retry
+    }
+    $retries = 0;
+    return $query;
+});
+```
+
+3. **Perform and monitor the failover:**
+
+```bash
+#!/bin/bash
+# failover-runbook.sh — execute during incident or scheduled test
+
+INSTANCE="wordpress-prod"
+PROJECT="my-gcp-project"
+
+echo "[$(date)] Starting Cloud SQL failover test..."
+
+# Trigger manual failover (promotes standby to primary, < 60 seconds)
+gcloud sql instances failover "$INSTANCE" --project="$PROJECT"
+
+echo "[$(date)] Failover triggered. Monitoring instance availability..."
+
+# Poll until instance is RUNNABLE again
+while true; do
+  STATE=$(gcloud sql instances describe "$INSTANCE" \
+    --project="$PROJECT" \
+    --format="value(state)" 2>/dev/null)
+  echo "[$(date)] Instance state: $STATE"
+  if [[ "$STATE" == "RUNNABLE" ]]; then
+    echo "[$(date)] Instance is back online."
+    break
+  fi
+  sleep 5
+done
+
+# Verify WordPress is serving requests
+HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" https://example.com/wp-json/)
+echo "[$(date)] WordPress HTTP status after failover: $HTTP_CODE"
+if [[ "$HTTP_CODE" == "200" ]]; then
+  echo "SUCCESS: WordPress recovered automatically."
+else
+  echo "WARNING: WordPress returned $HTTP_CODE — manual investigation required."
+fi
+```
+
+4. **Set up Cloud Monitoring alert for failover events:**
+
+```bash
+# Create a log-based alert for Cloud SQL failover events
+gcloud logging metrics create cloud-sql-failover \
+  --description="Cloud SQL failover detected" \
+  --log-filter='resource.type="cloudsql_database"
+    protoPayload.methodName="cloudsql.instances.failover"'
+
+# Create alerting policy on the metric
+gcloud alpha monitoring policies create \
+  --notification-channels="projects/my-gcp-project/notificationChannels/abc123" \
+  --display-name="Cloud SQL Failover Alert" \
+  --condition-display-name="Failover event" \
+  --condition-filter='metric.type="logging.googleapis.com/user/cloud-sql-failover"' \
+  --condition-threshold-value=1 \
+  --condition-threshold-duration=0s \
+  --condition-comparison=COMPARISON_GT
+```
+
+5. **Post-failover verification checklist:**
+
+```bash
+# Confirm new primary endpoint (Cloud SQL Proxy handles this transparently)
+gcloud sql instances describe wordpress-prod \
+  --format="value(ipAddresses[0].ipAddress)"
+
+# Check that replica was re-provisioned in the original zone
+gcloud sql instances describe wordpress-prod \
+  --format="yaml(replicaNames, serverCaCert.expirationTime)"
+
+# Verify no data loss: compare row counts on key tables
+mysql -h 127.0.0.1 -u wpuser -p"$DB_PASS" wordpress \
+  -e "SELECT COUNT(*) as posts FROM wp_posts WHERE post_status='publish';
+      SELECT MAX(comment_date) as last_comment FROM wp_comments;
+      SELECT option_value FROM wp_options WHERE option_name='siteurl';"
+```
+
+---
+
+## Scenario 7: Lambda@Edge A/B Testing Redirects for WordPress
+
+**Scenario:**
+The marketing team wants to A/B test two versions of a landing page (`/landing-v1/` vs `/landing-v2/`) without changing WordPress or deploying new code. 50% of visitors should see each version, the assignment must be sticky per visitor (same version on every visit), and the experiment must be togglable without a CloudFront deployment.
+
+**Challenge:**
+Implement A/B routing at the CloudFront edge layer using Lambda@Edge, with sticky assignment via a cookie and experiment config stored in SSM Parameter Store (so it can be toggled without redeploying Lambda).
+
+**Solution:**
+
+1. **Lambda@Edge function (Viewer Request trigger — runs before cache check):**
+
+```javascript
+// ab-test.js — deployed as Lambda@Edge in us-east-1
+// Trigger: CloudFront Viewer Request
+
+'use strict';
+
+// A/B test configuration (read from cookie or randomly assign)
+const EXPERIMENT = {
+  cookieName: 'ab_landing',
+  variants:   ['v1', 'v2'],
+  split:      0.5,   // 50% chance of v2
+  pathPrefix: '/landing-',
+};
+
+exports.handler = async (event) => {
+  const request  = event.Records[0].cf.request;
+  const headers  = request.headers;
+  const uri      = request.uri;
+
+  // Only apply A/B test to /landing* paths
+  if (!uri.startsWith('/landing')) {
+    return request;
+  }
+
+  // Check for existing assignment cookie
+  const cookieHeader = headers.cookie?.[0]?.value ?? '';
+  const match = cookieHeader.match(new RegExp(`${EXPERIMENT.cookieName}=([^;]+)`));
+  let variant = match ? match[1] : null;
+
+  // Assign variant if no existing cookie
+  if (!variant || !EXPERIMENT.variants.includes(variant)) {
+    variant = Math.random() < EXPERIMENT.split ? 'v2' : 'v1';
+  }
+
+  // Rewrite URI to the assigned variant
+  const newUri = `/landing-${variant}/`;
+  if (uri !== newUri) {
+    request.uri = newUri;
+  }
+
+  // Set the sticky cookie in the response via a custom header
+  // (Lambda@Edge Viewer Request can't set response headers directly;
+  //  use a custom request header and handle in Origin Response trigger)
+  request.headers['x-ab-variant'] = [{ key: 'X-Ab-Variant', value: variant }];
+
+  return request;
+};
+```
+
+2. **Origin Response trigger — set the sticky cookie:**
+
+```javascript
+// ab-test-response.js — Lambda@Edge Origin Response trigger
+'use strict';
+
+exports.handler = async (event) => {
+  const response = event.Records[0].cf.response;
+  const request  = event.Records[0].cf.request;
+
+  const variant = request.headers['x-ab-variant']?.[0]?.value;
+
+  if (variant) {
+    // Set a 30-day sticky cookie
+    response.headers['set-cookie'] = [{
+      key:   'Set-Cookie',
+      value: `ab_landing=${variant}; Path=/; Max-Age=2592000; SameSite=Lax`,
+    }];
+    // Add variant to response for debugging / analytics
+    response.headers['x-ab-variant'] = [{ key: 'X-Ab-Variant', value: variant }];
+  }
+
+  return response;
+};
+```
+
+3. **Deploy Lambda@Edge and associate with CloudFront:**
+
+```bash
+# Package and deploy Lambda (must be in us-east-1 for Lambda@Edge)
+zip ab-test.zip ab-test.js
+aws lambda create-function \
+  --function-name wp-ab-test-viewer-request \
+  --runtime nodejs20.x \
+  --role arn:aws:iam::123456789:role/lambda-edge-role \
+  --handler ab-test.handler \
+  --zip-file fileb://ab-test.zip \
+  --region us-east-1
+
+# Publish a version (Lambda@Edge requires a numbered version, not $LATEST)
+VERSION=$(aws lambda publish-version \
+  --function-name wp-ab-test-viewer-request \
+  --region us-east-1 \
+  --query Version --output text)
+
+echo "Deployed Lambda@Edge version: $VERSION"
+
+# Associate with CloudFront distribution (update the cache behavior)
+# In aws cloudfront update-distribution, add LambdaFunctionAssociations:
+# EventType: viewer-request
+# LambdaFunctionARN: arn:aws:lambda:us-east-1:123456789:function:wp-ab-test-viewer-request:$VERSION
+```
+
+4. **Track A/B variant in GA4 via the response header:**
+
+```javascript
+// GTM — Custom HTML tag, fires on All Pages
+// Reads the X-Ab-Variant response header via a meta tag injected server-side
+
+// In WordPress (functions.php) — inject variant into data layer
+add_action('wp_head', function() {
+    if (!isset($_COOKIE['ab_landing'])) return;
+    $variant = sanitize_key($_COOKIE['ab_landing']);
+    echo "<script>window.dataLayer=window.dataLayer||[];";
+    echo "window.dataLayer.push({event:'ab_assignment',ab_variant:" . wp_json_encode($variant) . "});</script>";
+}, 1);
+```
+
+5. **Toggle the experiment without redeploying Lambda — use a CloudFront custom header:**
+
+```bash
+# Add a custom origin header in CloudFront to pass experiment config
+# Lambda reads this header to enable/disable the test
+aws cloudfront update-distribution \
+  --id E1234ABCDEF \
+  --distribution-config "$(aws cloudfront get-distribution-config \
+    --id E1234ABCDEF --query DistributionConfig \
+    | jq '.Origins.Items[0].CustomHeaders.Items += [{"HeaderName":"X-Ab-Enabled","HeaderValue":"true","Quantity":1}]')"
+
+# To pause the experiment: set X-Ab-Enabled to "false" in CloudFront origin headers
+# Lambda checks: if (request.headers['x-ab-enabled']?.[0]?.value !== 'true') return request;
+```

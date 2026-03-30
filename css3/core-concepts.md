@@ -558,33 +558,6 @@ Scroll snap enforces alignment points during scrolling, creating a controlled, p
 
 ### CSS Specificity Hierarchy
 
-```mermaid
-graph TD
-    A["!important<br/>(breaks cascade)"] --> B
-    B["Inline styles<br/>style=&quot;&quot;<br/>1,0,0,0"] --> C
-    C["ID selectors<br/>#id<br/>0,1,0,0"] --> D
-    D["Class / Attribute / Pseudo-class<br/>.class  [attr]  :hover<br/>0,0,1,0"] --> E
-    E["Element / Pseudo-element<br/>h1  div  ::before<br/>0,0,0,1"]
-
-    style A fill:#c0392b,color:#fff
-    style B fill:#e67e22,color:#fff
-    style C fill:#f39c12,color:#000
-    style D fill:#27ae60,color:#fff
-    style E fill:#2980b9,color:#fff
-```
 
 ### CSS Box Model Layers
 
-```mermaid
-graph LR
-    subgraph Margin["Margin (transparent)"]
-        subgraph Border["Border"]
-            subgraph Padding["Padding"]
-                Content["Content\n(width × height)"]
-            end
-        end
-    end
-
-    note1["box-sizing: content-box\nwidth = content only"] -.-> Content
-    note2["box-sizing: border-box\nwidth = content + padding + border"] -.-> Border
-```

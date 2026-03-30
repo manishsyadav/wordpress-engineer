@@ -1,45 +1,5 @@
 # React & Gutenberg — Core Concepts
 
-```mermaid
-flowchart TD
-    BJ["block.json\n──────────\nname, title, category\nattributes schema\neditorScript, style\nsupports, example"]
-
-    BJ --> REG["registerBlockType()\n@wordpress/blocks\nPasses name + settings object"]
-
-    REG --> EDITOR
-
-    subgraph EDITOR["Block Editor (Editor Runtime)"]
-        direction TB
-        EDITFN["edit() function\n────────────────\nReceives: { attributes, setAttributes,\nclientId, isSelected }\nReturns: JSX for editor canvas\nCan use: useSelect, useDispatch,\nInspectorControls, BlockControls"]
-        ATTRS["Block Attributes\n────────────────\nStored in Redux store\n@wordpress/block-editor\nPersisted to post_content\nas HTML comment delimiters"]
-        EDITFN <-->|"setAttributes\nupdates store"| ATTRS
-    end
-
-    EDITOR -->|"User clicks Save / Publish"| SERIALISE
-
-    SERIALISE["Serialisation\n────────────────\nsave() function runs\nOutputs static HTML string\nWrapped in HTML comment:\n<!-- wp:block-name {attrs} -->"]
-
-    SERIALISE --> DB[("WordPress Database\nwp_posts.post_content\nStores serialised block HTML\n+ attribute comments")]
-
-    DB -->|"Front-end page request"| PARSE
-
-    PARSE["Block Parser\nparse_blocks()\nExtracts block name + attrs\nfrom HTML comment delimiters"]
-
-    PARSE --> RENDER{"Render Path"}
-
-    RENDER -->|"Static block\nsave() output stored"| STATIC["Serve Stored HTML\ndirectly from post_content"]
-
-    RENDER -->|"Dynamic block\nrender_callback set"| DYNAMIC["PHP render_callback()\nFetches fresh data\nReturns HTML at request time"]
-
-    STATIC --> FRONTEND([Front-End HTML])
-    DYNAMIC --> FRONTEND
-
-    style BJ fill:#3498db,color:#fff
-    style REG fill:#9b59b6,color:#fff
-    style DB fill:#e74c3c,color:#fff
-    style FRONTEND fill:#27ae60,color:#fff
-    style SERIALISE fill:#f39c12,color:#fff
-```
 
 ## 1. Virtual DOM
 

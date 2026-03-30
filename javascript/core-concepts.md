@@ -2,46 +2,6 @@
 
 > Foundational JavaScript knowledge for Senior WordPress Engineer interviews.
 
-```mermaid
-flowchart TD
-    subgraph JS_ENGINE["JavaScript Engine (V8)"]
-        CS["Call Stack\n─────────────\nfunction frames\nexecute synchronously\none at a time"]
-        HEAP["Memory Heap\n─────────────\nobject allocation\ngarbage collected"]
-    end
-
-    subgraph WEB_APIS["Web APIs / Node APIs"]
-        TIMERS["setTimeout / setInterval"]
-        FETCH["fetch / XHR"]
-        DOM["DOM Events\nonclick / oninput"]
-        IO["I/O / fs (Node)"]
-    end
-
-    subgraph QUEUES["Task Queues"]
-        MQ["Microtask Queue\n─────────────\nPromise.then/.catch\nawait continuations\nqueueMicrotask\nMutationObserver"]
-        CQ["Callback Queue\n(Macrotask Queue)\n─────────────\nsetTimeout callbacks\nsetInterval callbacks\nDOM event handlers\nXHR callbacks"]
-    end
-
-    EL{{"Event Loop\n─────────\n1. Run all microtasks\n   until queue empty\n2. Pick one macrotask\n3. Render if needed\n4. Repeat"}}
-
-    CS -->|"async op handed off"| WEB_APIS
-    TIMERS -->|"timer expires"| CQ
-    FETCH -->|"response received"| CQ
-    DOM -->|"event fires"| CQ
-    IO -->|"I/O completes"| CQ
-
-    CS -->|"Promise resolves /\nawait resumes"| MQ
-
-    EL -->|"stack is empty:\nprocess ALL microtasks first"| MQ
-    MQ -->|"push callback\nonto stack"| CS
-    EL -->|"microtask queue empty:\npick ONE macrotask"| CQ
-    CQ -->|"push callback\nonto stack"| CS
-
-    style CS fill:#3498db,color:#fff
-    style MQ fill:#e74c3c,color:#fff
-    style CQ fill:#f39c12,color:#fff
-    style EL fill:#27ae60,color:#fff
-    style WEB_APIS fill:#9b59b6,color:#fff
-```
 
 ---
 

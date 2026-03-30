@@ -687,3 +687,574 @@ curl -s -I \
 # Should show: Cache-Control: no-store, private
 # CF-Cache-Status: DYNAMIC (not cached)
 ```
+
+---
+
+## Scenario 4: Building a Versioned, Backward-Compatible Custom REST API for a Headless WordPress Setup
+
+**Scenario:**
+A media company runs a headless WordPress backend with a React front end consuming a custom REST API at `mysite/v1`. After a year in production, a breaking change is needed (renaming a field, restructuring a nested object). The v1 mobile app cannot be updated immediately, so both versions must coexist.
+
+**Challenge:**
+Introduce `v2` without breaking `v1` clients, share business logic between versions, and document the deprecation path.
+
+**Solution:**
+
+1. Structure the plugin to share a controller base class:
+
+```php
+<?php
+// plugin/includes/class-articles-controller-base.php
+
+abstract class MyApp_Articles_Controller_Base extends WP_REST_Controller {
+
+    protected function get_article_data( WP_Post $post ): array {
+        return [
+            'id'      => $post->ID,
+            'title'   => $post->post_title,
+            'content' => apply_filters( 'the_content', $post->post_content ),
+            'date'    => $post->post_date_gmt,
+            'author'  => get_the_author_meta( 'display_name', $post->post_author ),
+        ];
+    }
+}
+```
+
+2. Register v1 — preserves the original field structure:
+
+```php
+// plugin/includes/class-articles-controller-v1.php
+
+class MyApp_Articles_Controller_V1 extends MyApp_Articles_Controller_Base {
+
+    protected $namespace = 'mysite/v1';
+    protected $rest_base = 'articles';
+
+    public function register_routes(): void {
+        register_rest_route( $this->namespace, '/' . $this->rest_base, [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [ $this, 'get_items' ],
+            'permission_callback' => '__return_true',
+        ] );
+    }
+
+    public function get_items( WP_REST_Request $request ): WP_REST_Response {
+        $posts = get_posts( [ 'post_type' => 'post', 'posts_per_page' => 10 ] );
+        $data  = array_map( [ $this, 'get_article_data' ], $posts );
+
+        // v1 returns flat author string — legacy format
+        $response = new WP_REST_Response( $data, 200 );
+        $response->header( 'Deprecation', 'true' );
+        $response->header( 'Sunset', gmdate( 'D, d M Y', strtotime( '+12 months' ) ) . ' 00:00:00 GMT' );
+        $response->header( 'Link', '<https://example.com/wp-json/mysite/v2/articles>; rel="successor-version"' );
+        return $response;
+    }
+}
+```
+
+3. Register v2 — breaking changes isolated here:
+
+```php
+// plugin/includes/class-articles-controller-v2.php
+
+class MyApp_Articles_Controller_V2 extends MyApp_Articles_Controller_Base {
+
+    protected $namespace = 'mysite/v2';
+    protected $rest_base = 'articles';
+
+    public function register_routes(): void {
+        register_rest_route( $this->namespace, '/' . $this->rest_base, [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [ $this, 'get_items' ],
+            'permission_callback' => '__return_true',
+            'args'                => [
+                'per_page' => [ 'type' => 'integer', 'default' => 10, 'minimum' => 1, 'maximum' => 100 ],
+                'page'     => [ 'type' => 'integer', 'default' => 1,  'minimum' => 1 ],
+            ],
+        ] );
+    }
+
+    public function get_items( WP_REST_Request $request ): WP_REST_Response {
+        $per_page = (int) $request->get_param( 'per_page' );
+        $page     = (int) $request->get_param( 'page' );
+
+        $query = new WP_Query( [
+            'post_type'      => 'post',
+            'posts_per_page' => $per_page,
+            'paged'          => $page,
+            'post_status'    => 'publish',
+        ] );
+
+        $data = array_map( function( WP_Post $post ): array {
+            $base = $this->get_article_data( $post );
+            // v2: author is now an object, not a flat string
+            $base['author'] = [
+                'id'           => (int) $post->post_author,
+                'display_name' => get_the_author_meta( 'display_name', $post->post_author ),
+                'avatar'       => get_avatar_url( (int) $post->post_author ),
+            ];
+            // v2: new thumbnail field
+            $base['thumbnail'] = get_the_post_thumbnail_url( $post->ID, 'medium' ) ?: null;
+            return $base;
+        }, $query->posts );
+
+        $response = new WP_REST_Response( $data, 200 );
+        $response->header( 'X-WP-Total',      (int) $query->found_posts );
+        $response->header( 'X-WP-TotalPages', (int) $query->max_num_pages );
+        return $response;
+    }
+}
+```
+
+4. Boot both controllers from the plugin:
+
+```php
+add_action( 'rest_api_init', function () {
+    ( new MyApp_Articles_Controller_V1() )->register_routes();
+    ( new MyApp_Articles_Controller_V2() )->register_routes();
+} );
+```
+
+5. Test both versions coexist:
+
+```bash
+# v1 still returns flat author string
+curl -s https://example.com/wp-json/mysite/v1/articles | jq '.[0].author'
+# "Jane Smith"
+
+# v2 returns author object
+curl -s https://example.com/wp-json/mysite/v2/articles | jq '.[0].author'
+# { "id": 3, "display_name": "Jane Smith", "avatar": "https://..." }
+
+# v1 response includes deprecation headers
+curl -sI https://example.com/wp-json/mysite/v1/articles | grep -i 'deprecation\|sunset'
+# Deprecation: true
+# Sunset: Mon, 30 Mar 2027 00:00:00 GMT
+```
+
+---
+
+## Scenario 5: Implementing OAuth2-Style Token Authentication for a Mobile App Consuming the WP REST API
+
+**Scenario:**
+A native mobile app needs stateless, short-lived token authentication against WordPress. Application Passwords are not ideal because they never expire. The team wants access tokens (15-minute TTL) and refresh tokens (30-day TTL) without a third-party plugin dependency.
+
+**Challenge:**
+Implement a token issuance endpoint, a token refresh endpoint, and a per-request validation middleware — all in a custom plugin using only WordPress core.
+
+**Solution:**
+
+1. Issue tokens on login (`POST /myapp/v1/auth/token`):
+
+```php
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'myapp/v1', '/auth/token', [
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'myapp_issue_token',
+        'permission_callback' => '__return_true',
+        'args'                => [
+            'username' => [ 'type' => 'string', 'required' => true, 'sanitize_callback' => 'sanitize_user' ],
+            'password' => [ 'type' => 'string', 'required' => true ],
+        ],
+    ] );
+
+    register_rest_route( 'myapp/v1', '/auth/refresh', [
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'myapp_refresh_token',
+        'permission_callback' => '__return_true',
+        'args'                => [
+            'refresh_token' => [ 'type' => 'string', 'required' => true ],
+        ],
+    ] );
+} );
+
+function myapp_issue_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+    $user = wp_authenticate(
+        $request->get_param( 'username' ),
+        $request->get_param( 'password' )
+    );
+
+    if ( is_wp_error( $user ) ) {
+        return new WP_Error( 'invalid_credentials', 'Invalid username or password.', [ 'status' => 401 ] );
+    }
+
+    return new WP_REST_Response( myapp_generate_tokens( $user->ID ), 200 );
+}
+
+function myapp_generate_tokens( int $user_id ): array {
+    $access_token  = wp_generate_password( 64, false );
+    $refresh_token = wp_generate_password( 64, false );
+    $now           = time();
+
+    // Store hashed tokens — never store plaintext
+    set_transient( 'myapp_at_' . hash( 'sha256', $access_token ),  $user_id, 15 * MINUTE_IN_SECONDS );
+    set_transient( 'myapp_rt_' . hash( 'sha256', $refresh_token ), $user_id, 30 * DAY_IN_SECONDS );
+
+    return [
+        'access_token'  => $access_token,
+        'token_type'    => 'Bearer',
+        'expires_in'    => 900,
+        'refresh_token' => $refresh_token,
+    ];
+}
+
+function myapp_refresh_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+    $rt      = $request->get_param( 'refresh_token' );
+    $hash    = hash( 'sha256', $rt );
+    $user_id = (int) get_transient( 'myapp_rt_' . $hash );
+
+    if ( ! $user_id ) {
+        return new WP_Error( 'invalid_refresh_token', 'Refresh token is invalid or expired.', [ 'status' => 401 ] );
+    }
+
+    // Rotate refresh token (one-time use)
+    delete_transient( 'myapp_rt_' . $hash );
+
+    return new WP_REST_Response( myapp_generate_tokens( $user_id ), 200 );
+}
+```
+
+2. Validate the access token on protected requests via `rest_authentication_errors`:
+
+```php
+add_filter( 'rest_authentication_errors', function( $result ) {
+    // Don't override if another authentication method already ran
+    if ( null !== $result ) {
+        return $result;
+    }
+
+    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+    if ( ! str_starts_with( $auth_header, 'Bearer ' ) ) {
+        return $result; // not a Bearer request; let WP handle it
+    }
+
+    $token   = substr( $auth_header, 7 );
+    $hash    = hash( 'sha256', $token );
+    $user_id = (int) get_transient( 'myapp_at_' . $hash );
+
+    if ( ! $user_id ) {
+        return new WP_Error( 'token_invalid', 'Access token is invalid or expired.', [ 'status' => 401 ] );
+    }
+
+    wp_set_current_user( $user_id );
+    return true;
+} );
+```
+
+3. Example mobile client flow:
+
+```javascript
+// 1. Obtain tokens
+const { access_token, refresh_token, expires_in } = await fetch(
+    'https://example.com/wp-json/myapp/v1/auth/token',
+    {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'johndoe', password: 'secret' }),
+    }
+).then( r => r.json() );
+
+// Persist tokens securely (iOS Keychain / Android Keystore)
+storeSecurely( 'access_token', access_token );
+storeSecurely( 'refresh_token', refresh_token );
+
+// 2. Use access token for API calls
+const profile = await fetch( 'https://example.com/wp-json/myapp/v1/profile', {
+    headers: { 'Authorization': `Bearer ${access_token}` },
+} ).then( r => r.json() );
+
+// 3. Refresh when the access token expires (check expires_in or catch 401)
+async function refreshAccessToken() {
+    const rt = retrieveSecurely( 'refresh_token' );
+    const tokens = await fetch( 'https://example.com/wp-json/myapp/v1/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rt }),
+    } ).then( r => r.json() );
+    storeSecurely( 'access_token', tokens.access_token );
+    storeSecurely( 'refresh_token', tokens.refresh_token ); // rotated
+}
+```
+
+---
+
+## Scenario 6: Debugging a CORS Issue Blocking a React Frontend from a WP REST API on a Different Domain
+
+**Scenario:**
+A React SPA at `https://app.example.com` fetches from a WordPress REST API at `https://cms.example.com/wp-json/`. The browser blocks the request with: `Access to fetch at 'https://cms.example.com/wp-json/wp/v2/posts' from origin 'https://app.example.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present`.
+
+**Challenge:**
+Diagnose where in the stack CORS headers are missing and apply the fix at the right layer — not just in PHP, but also at Nginx and the CDN.
+
+**Solution:**
+
+1. Reproduce and inspect the preflight:
+
+```bash
+# Simulate a browser CORS preflight
+curl -s -I \
+  -X OPTIONS \
+  -H "Origin: https://app.example.com" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: X-WP-Nonce, Content-Type" \
+  https://cms.example.com/wp-json/wp/v2/posts
+
+# A correct response must include:
+# Access-Control-Allow-Origin: https://app.example.com
+# Access-Control-Allow-Methods: GET, POST, OPTIONS
+# Access-Control-Allow-Headers: X-WP-Nonce, Content-Type, Authorization
+```
+
+2. Add CORS headers in WordPress via the `rest_api_init` action — this handles PHP-level responses:
+
+```php
+add_action( 'rest_api_init', function () {
+    remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
+
+    add_filter( 'rest_pre_serve_request', function( $value ) {
+        $allowed_origins = [
+            'https://app.example.com',
+            'https://staging.example.com',
+        ];
+
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+        if ( in_array( $origin, $allowed_origins, true ) ) {
+            header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
+            header( 'Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS' );
+            header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
+            header( 'Access-Control-Allow-Credentials: true' );
+            header( 'Vary: Origin' );
+        }
+
+        // Handle preflight
+        if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
+            header( 'HTTP/1.1 204 No Content' );
+            exit;
+        }
+
+        return $value;
+    } );
+}, 15 );
+```
+
+3. Handle CORS at Nginx for OPTIONS preflights that may not reach PHP:
+
+```nginx
+server {
+    location /wp-json/ {
+        # Handle OPTIONS preflight before passing to PHP
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin  "https://app.example.com" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-WP-Nonce" always;
+            add_header Access-Control-Max-Age       3600 always;
+            add_header Content-Length 0;
+            return 204;
+        }
+
+        add_header Access-Control-Allow-Origin "https://app.example.com" always;
+        add_header Vary Origin always;
+
+        try_files $uri $uri/ /index.php?$args;
+    }
+}
+```
+
+4. If using Cloudflare, ensure CORS headers are not being stripped by a Transform Rule. Verify with:
+
+```bash
+# Check whether Cloudflare is caching the preflight response without CORS headers
+curl -s -I \
+  -X OPTIONS \
+  -H "Origin: https://app.example.com" \
+  https://cms.example.com/wp-json/wp/v2/posts | grep -i 'cf-cache\|access-control'
+```
+
+5. Common mistakes to check:
+
+```javascript
+// Mistake 1: fetch with credentials but server returns wildcard origin
+// fetch with credentials: 'include' requires a specific origin, not '*'
+fetch( url, { credentials: 'include' } );
+// Server MUST return: Access-Control-Allow-Origin: https://app.example.com (not *)
+// AND:                Access-Control-Allow-Credentials: true
+
+// Mistake 2: missing Vary: Origin header causes CDN to serve cached response
+// without CORS headers to a different allowed origin
+// Always include: Vary: Origin in the response
+
+// Mistake 3: nonce-based auth from a cross-origin context
+// Nonces are session-bound — Application Passwords or custom tokens are the
+// correct auth mechanism for cross-origin requests
+```
+
+---
+
+## Scenario 7: Caching REST API Responses at the Endpoint Level to Reduce Database Load
+
+**Scenario:**
+A news site has a public `GET /wp-json/mysite/v1/trending` endpoint that runs an expensive `WP_Query` with three meta queries and a `GROUP BY`. The endpoint is called 50,000 times per hour from a React front end. Trending data only needs to update every 5 minutes.
+
+**Challenge:**
+Implement a multi-layer caching strategy: PHP transient (object cache), HTTP cache headers, and selective cache invalidation on publish — without serving stale content after a new article is published.
+
+**Solution:**
+
+1. Register the endpoint with a cache-aware callback:
+
+```php
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'mysite/v1', '/trending', [
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'mysite_get_trending',
+        'permission_callback' => '__return_true',
+        'args'                => [
+            'limit' => [
+                'type'              => 'integer',
+                'default'           => 10,
+                'minimum'           => 1,
+                'maximum'           => 50,
+                'sanitize_callback' => 'absint',
+            ],
+        ],
+    ] );
+} );
+
+function mysite_get_trending( WP_REST_Request $request ): WP_REST_Response {
+    $limit     = (int) $request->get_param( 'limit' );
+    $cache_key = 'mysite_trending_limit_' . $limit;
+
+    // Layer 1: object cache (Redis/Memcached via WP object cache drop-in)
+    $data = wp_cache_get( $cache_key, 'mysite_rest' );
+
+    if ( false === $data ) {
+        // Expensive query — runs only on cache miss
+        $data = mysite_fetch_trending_posts( $limit );
+
+        // Cache for 5 minutes in object cache
+        wp_cache_set( $cache_key, $data, 'mysite_rest', 5 * MINUTE_IN_SECONDS );
+
+        // Also write a transient as fallback when Redis is unavailable
+        set_transient( $cache_key, $data, 5 * MINUTE_IN_SECONDS );
+    }
+
+    // Generate ETag from data hash for conditional GET support
+    $etag = '"' . md5( wp_json_encode( $data ) ) . '"';
+
+    // Return 304 Not Modified if client's ETag matches
+    if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && $_SERVER['HTTP_IF_NONE_MATCH'] === $etag ) {
+        return new WP_REST_Response( null, 304 );
+    }
+
+    $response = new WP_REST_Response( $data, 200 );
+    // public: CDNs can cache  |  s-maxage: CDN TTL  |  stale-while-revalidate: serve stale while refreshing
+    $response->header( 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=30' );
+    $response->header( 'ETag', $etag );
+    $response->header( 'Vary', 'Accept-Encoding' );
+    $response->header( 'X-Cache-Hit', 'MISS' ); // override to HIT in production after confirming caching
+    return $response;
+}
+
+function mysite_fetch_trending_posts( int $limit ): array {
+    global $wpdb;
+
+    // Raw query is faster than WP_Query for aggregation
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT p.ID, p.post_title, p.post_date,
+                CAST(pm_views.meta_value AS UNSIGNED) AS view_count
+         FROM {$wpdb->posts} p
+         INNER JOIN {$wpdb->postmeta} pm_views ON p.ID = pm_views.post_id AND pm_views.meta_key = '_view_count'
+         WHERE p.post_type   = 'post'
+           AND p.post_status = 'publish'
+           AND p.post_date   > DATE_SUB(NOW(), INTERVAL 7 DAY)
+         ORDER BY view_count DESC
+         LIMIT %d",
+        $limit
+    ) );
+
+    return array_map( fn( $row ) => [
+        'id'          => (int) $row->ID,
+        'title'       => $row->post_title,
+        'link'        => get_permalink( (int) $row->ID ),
+        'date'        => $row->post_date,
+        'view_count'  => (int) $row->view_count,
+        'thumbnail'   => get_the_post_thumbnail_url( (int) $row->ID, 'medium' ) ?: null,
+    ], $rows );
+}
+```
+
+2. Invalidate the cache when a post is published or updated:
+
+```php
+add_action( 'transition_post_status', function( string $new_status, string $old_status, WP_Post $post ): void {
+    if ( 'post' !== $post->post_type ) {
+        return;
+    }
+    if ( 'publish' === $new_status || 'publish' === $old_status ) {
+        mysite_purge_trending_cache();
+    }
+}, 10, 3 );
+
+function mysite_purge_trending_cache(): void {
+    global $wpdb;
+
+    // Purge all limit variants from object cache
+    foreach ( [ 5, 10, 20, 50 ] as $limit ) {
+        wp_cache_delete( 'mysite_trending_limit_' . $limit, 'mysite_rest' );
+    }
+
+    // Purge transients
+    $wpdb->query(
+        "DELETE FROM {$wpdb->options}
+         WHERE option_name LIKE '_transient_mysite_trending_%'
+            OR option_name LIKE '_transient_timeout_mysite_trending_%'"
+    );
+
+    // Purge Cloudflare cache for the endpoint URL
+    $cf_token   = defined( 'CF_API_TOKEN' )  ? CF_API_TOKEN  : get_option( 'mysite_cf_token' );
+    $cf_zone_id = defined( 'CF_ZONE_ID' )    ? CF_ZONE_ID    : get_option( 'mysite_cf_zone_id' );
+
+    if ( $cf_token && $cf_zone_id ) {
+        wp_remote_post(
+            "https://api.cloudflare.com/client/v4/zones/{$cf_zone_id}/purge_cache",
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $cf_token,
+                    'Content-Type'  => 'application/json',
+                ],
+                'body'    => wp_json_encode( [
+                    'files' => [
+                        rest_url( 'mysite/v1/trending' ),
+                        rest_url( 'mysite/v1/trending?limit=5' ),
+                        rest_url( 'mysite/v1/trending?limit=20' ),
+                    ],
+                ] ),
+                'timeout' => 5,
+            ]
+        );
+    }
+}
+```
+
+3. Verify the caching layers are working:
+
+```bash
+# First request — MISS
+curl -sI https://cms.example.com/wp-json/mysite/v1/trending
+# Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=30
+# ETag: "a1b2c3d4..."
+# CF-Cache-Status: MISS
+
+# Second request — HIT at CDN
+curl -sI https://cms.example.com/wp-json/mysite/v1/trending
+# CF-Cache-Status: HIT
+# Age: 12
+
+# Conditional GET — should return 304 if ETag matches
+curl -sI -H 'If-None-Match: "a1b2c3d4..."' https://cms.example.com/wp-json/mysite/v1/trending
+# HTTP/2 304
+```
+
+---

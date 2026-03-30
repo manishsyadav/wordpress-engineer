@@ -610,3 +610,677 @@ In GA4 > Explore > Create new Exploration > Funnel Exploration:
 4. Set date range to at least 28 days for statistical significance.
 
 The funnel visualization shows percentage drop-off between each step, letting the team prioritize checkout optimizations (e.g., if 60% drop between `begin_checkout` and `add_payment_info`, the payment form has friction).
+
+---
+
+## Scenario 4: Diagnosing and Fixing a 40% Organic Traffic Drop After a WordPress Core Update
+
+**Scenario:**
+A WordPress content site loses 40% of its organic search traffic within 48 hours of updating WordPress core from 6.4 to 6.5. Rankings for top-performing posts have fallen from positions 3–8 to positions 25–50. No content was changed — only the core update was deployed.
+
+**Challenge:**
+Determine whether the traffic drop is caused by the WordPress update (technical regression) or a coincidental Google algorithm update, fix any technical issues introduced, and establish a monitoring baseline to catch future regressions before they impact traffic.
+
+**Solution:**
+
+1. **Separate the cause: algorithm update vs. technical regression:**
+
+```bash
+# Check Google's announced updates around the date of the traffic drop
+# https://status.search.google.com/products/rGHU1u4ub4a4/history
+# Cross-reference with: moz.com/google-algorithm-change-history
+
+# In GSC: Performance > Compare dates (7 days before vs 7 days after update)
+# If ALL pages dropped → likely algorithm or site-wide technical issue
+# If SPECIFIC pages dropped → investigate those pages for technical regressions
+# If impressions held but CTR/position dropped → content/ranking signal issue
+# If impressions AND clicks dropped → crawlability/indexability issue
+```
+
+2. **Audit for technical regressions introduced by the WordPress update:**
+
+```bash
+# Check if robots.txt was reset or modified (WP 6.5 changed robots.txt generation)
+curl -s https://example.com/robots.txt
+
+# Verify sitemap is still accessible and valid
+curl -s https://example.com/sitemap.xml | head -30
+
+# Check for noindex tags that might have been added site-wide
+# (Settings > Reading > "Discourage search engines" checkbox — sometimes toggled on updates)
+wp option get blog_public
+# Expected: 1 (public). If 0, the site is telling crawlers to stay out.
+
+# Check HTTP response codes for key URLs
+for url in "/" "/blog/" "/most-popular-post/"; do
+  code=$(curl -o /dev/null -s -w "%{http_code}" "https://example.com${url}")
+  echo "$url → HTTP $code"
+done
+```
+
+3. **Fix the most common WP 6.5 upgrade regression — sitemap and robots.txt:**
+
+```php
+// WP 6.5 changed how the core XML sitemap works.
+// If a plugin (Yoast, RankMath) was managing the sitemap, check for conflicts.
+
+// In functions.php — disable core sitemap if an SEO plugin handles it
+// (Yoast and RankMath do this automatically, but verify after major updates)
+add_filter('wp_sitemaps_enabled', '__return_false');
+
+// Check and restore correct canonical tag generation after update
+// In Yoast: SEO > Tools > File Editor — verify robots.txt content
+// Expected minimal robots.txt after WP 6.5:
+```
+
+```nginx
+# Verify canonical redirect rules are still in place in Nginx
+# (Check that the WP update didn't reset .htaccess on Apache or Nginx rewrite rules)
+curl -sI https://example.com/some-post | grep -i "location\|canonical"
+```
+
+4. **Crawl the site post-update to find newly broken pages:**
+
+```bash
+# Using Screaming Frog CLI (or equivalent)
+# screamingfrogseospider --crawl https://example.com --headless \
+#   --save-crawl --export-tabs "Response Codes:All"
+
+# Quick check for 404s and redirects using WP-CLI
+wp post list --post_type=post --post_status=publish --fields=ID,post_name --format=csv \
+  | tail -n +2 \
+  | while IFS=, read -r id slug; do
+      url="https://example.com/${slug}/"
+      code=$(curl -o /dev/null -s -w "%{http_code}" "$url")
+      [[ "$code" != "200" ]] && echo "PROBLEM: $url → $code"
+    done
+
+# Check for sudden increase in 404s in Nginx logs (post-update)
+grep "$(date -d 'yesterday' +%d/%b/%Y)" /var/log/nginx/access.log \
+  | awk '$9 == 404' | wc -l
+```
+
+5. **Check and repair permalink structure (common WP update regression):**
+
+```bash
+# WP updates can sometimes reset rewrite rules, causing 404s on pretty permalinks
+wp rewrite flush --hard
+
+# Verify permalink structure is still set to /%postname%/
+wp option get permalink_structure
+# Expected: /%postname%/
+
+# If it was reset to plain (?p=123), restore it:
+wp option update permalink_structure '/%postname%/'
+wp rewrite flush --hard
+```
+
+6. **Submit updated sitemap and request re-crawl of affected pages:**
+
+```bash
+# Re-submit sitemap via GSC API (requires OAuth setup)
+# Or do it manually: GSC > Sitemaps > Delete old > Re-submit
+
+# Request indexing for the most impacted pages via GSC URL Inspection
+# (Limit: ~10-50 URLs per day via the UI; use Search Console API for bulk)
+
+# Monitor recovery — submit a progress report to stakeholders:
+cat << 'EOF'
+Recovery Monitoring Plan:
+- Week 1: Check GSC daily for crawl errors and index coverage changes
+- Week 2: Monitor organic traffic trend in GA4 (Acquisition > Traffic acquisition)
+- Week 3: Check ranking positions in Semrush/Ahrefs for top 20 keywords
+- Week 4: Compare before/after using GSC Performance date comparison
+- Timeline: Technical fixes recover in 1-4 weeks; full re-evaluation by Google in 4-12 weeks
+EOF
+```
+
+---
+
+## Scenario 5: Implementing Server-Side GTM for Privacy-Compliant Analytics
+
+**Scenario:**
+A publisher with 60% EU traffic faces two problems: client-side GTM is being blocked by ~35% of visitors using ad blockers or iOS Intelligent Tracking Prevention, causing significant data gaps in GA4. Second, a GDPR audit flags third-party JavaScript loading on page load as a consent violation. Server-side GTM (sGTM) solves both by proxying analytics through a first-party subdomain.
+
+**Challenge:**
+Deploy a server-side GTM container on GCP Cloud Run, configure a first-party subdomain (`analytics.example.com`), migrate GA4 and Meta Pixel tags from client-side to server-side, and verify improved data collection rates.
+
+**Solution:**
+
+1. **Deploy the sGTM container on GCP Cloud Run:**
+
+```bash
+#!/bin/bash
+# Deploy Google's sGTM preview server and tagging server on Cloud Run
+PROJECT="my-gcp-project"
+REGION="us-central1"
+CONTAINER_ID="GTM-XXXXXXX"  # your server-side container ID from GTM
+
+# Deploy the tagging server (handles actual tag firing)
+gcloud run deploy gtm-tagging-server \
+  --image gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable \
+  --platform managed \
+  --region "$REGION" \
+  --project "$PROJECT" \
+  --min-instances 1 \
+  --max-instances 10 \
+  --memory 512Mi \
+  --cpu 1 \
+  --set-env-vars \
+    CONTAINER_CONFIG="$(echo -n "$CONTAINER_ID" | base64)",RUN_AS_PREVIEW_SERVER=false \
+  --allow-unauthenticated
+
+# Deploy the preview server (for GTM preview/debug mode)
+gcloud run deploy gtm-preview-server \
+  --image gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable \
+  --platform managed \
+  --region "$REGION" \
+  --project "$PROJECT" \
+  --min-instances 0 \
+  --max-instances 3 \
+  --memory 512Mi \
+  --set-env-vars \
+    CONTAINER_CONFIG="$(echo -n "$CONTAINER_ID" | base64)",RUN_AS_PREVIEW_SERVER=true \
+  --allow-unauthenticated
+
+# Get the tagging server URL
+TAGGING_URL=$(gcloud run services describe gtm-tagging-server \
+  --region="$REGION" --project="$PROJECT" \
+  --format="value(status.url)")
+echo "Tagging server URL: $TAGGING_URL"
+```
+
+2. **Configure a custom first-party subdomain via Nginx:**
+
+```nginx
+# /etc/nginx/sites-available/analytics-proxy
+# Proxies analytics.example.com → Cloud Run sGTM endpoint
+# This makes analytics requests appear as first-party to the browser
+
+server {
+    listen 443 ssl http2;
+    server_name analytics.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/analytics.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # Proxy all requests to Cloud Run sGTM
+    location / {
+        proxy_pass          https://gtm-tagging-server-xxxx-uc.a.run.app;
+        proxy_set_header    Host                gtm-tagging-server-xxxx-uc.a.run.app;
+        proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
+        proxy_set_header    X-Forwarded-Proto   $scheme;
+        proxy_ssl_server_name on;
+        proxy_http_version  1.1;
+        proxy_set_header    Connection "";
+
+        # Pass through cookies (critical for GA4 first-party cookies)
+        proxy_pass_header   Set-Cookie;
+
+        # Cache the sGTM script itself (not the tracking calls)
+        location ~* /gtm\.js$ {
+            proxy_pass https://gtm-tagging-server-xxxx-uc.a.run.app;
+            proxy_cache_valid 200 5m;
+            add_header X-Proxy-Cache $upstream_cache_status;
+        }
+    }
+}
+```
+
+3. **Update the GTM snippet in WordPress to use the first-party endpoint:**
+
+```php
+// functions.php — load GTM from first-party domain
+function add_sgtm_snippet(): void {
+    $container_id    = 'GTM-XXXXXXX';
+    $first_party_url = 'https://analytics.example.com';
+    ?>
+    <!-- Server-Side Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    '<?= esc_js($first_party_url) ?>/gtm.js?id='+i+dl;
+    f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','<?= esc_js($container_id) ?>');</script>
+    <!-- End Server-Side Google Tag Manager -->
+    <?php
+}
+add_action('wp_head', 'add_sgtm_snippet', 2);
+```
+
+4. **Configure GA4 in the sGTM container (GTM UI):**
+
+```javascript
+// In the sGTM container, create a GA4 Client (receives events from browser)
+// and a GA4 Tag (forwards events to Google's collection endpoint)
+
+// sGTM GA4 Client settings:
+// - Measurement Protocol secret: (generate in GA4 Admin > Data Streams)
+// - Activation trigger: All Pages
+
+// Override the GA4 transport URL in the CLIENT-SIDE GTM GA4 config tag:
+// transport_url: "https://analytics.example.com"
+// first_party_collection: true
+
+// This causes the browser to send GA4 hits to YOUR server first,
+// then sGTM forwards them to Google — bypassing ad blockers
+
+// Verify in sGTM preview mode:
+// Open GTM Preview on your site, look for incoming events in the sGTM preview panel
+// You should see: page_view, scroll, click events arriving at the sGTM server
+```
+
+5. **Measure the improvement in data collection:**
+
+```javascript
+// Add a custom metric to track ad-blocker rate
+// This script runs after sGTM loads — if it loaded, the user is not blocking our domain
+window.addEventListener('load', function() {
+    // Check if gtag function is available (loaded from our first-party domain)
+    if (typeof gtag === 'function') {
+        gtag('event', 'tracking_available', {
+            'transport_method': 'server_side',
+            'non_interaction': true,
+        });
+    }
+});
+
+// In GA4: create a custom metric "Tracking Available" based on this event
+// Compare "tracking_available" event count vs total sessions
+// Typical improvement: 25-40% more tracked users vs client-side only
+```
+
+---
+
+## Scenario 6: Auditing and Fixing Duplicate Content Issues in WordPress
+
+**Scenario:**
+A WordPress blog's organic traffic has been stagnant for 6 months despite publishing new content. A technical audit reveals Google Search Console is reporting hundreds of "Duplicate without user-selected canonical" and "Duplicate, Google chose different canonical than user" warnings. The site uses default WordPress pagination, archives, and tag/category pages without proper canonical tags.
+
+**Challenge:**
+Audit all sources of duplicate content (pagination, archives, tags, categories, author pages, date archives, query strings), implement correct canonical tags, and consolidate link equity to the preferred URLs.
+
+**Solution:**
+
+1. **Identify all duplicate content sources:**
+
+```bash
+# Audit canonical issues in GSC:
+# Coverage > Excluded > Filter by: "Duplicate without user-selected canonical"
+# Export the list of affected URLs
+
+# Local crawl with Screaming Frog to find canonical mismatches
+# Filter: Canonicals > Non-Indexable Canonicals
+
+# Check which URL types are generating duplicates
+curl -sI "https://example.com/?p=123" | grep -i "location\|canonical"
+curl -sI "https://example.com/post-slug/?utm_source=newsletter" | grep -i location
+curl -sI "https://example.com/category/news/page/1/" | grep -i location
+```
+
+2. **Fix canonical tags for paginated archives (Yoast SEO):**
+
+```php
+// Yoast already handles most canonicals, but WordPress pagination is tricky.
+// Page 1 of a category archive at /category/news/ and /category/news/page/1/
+// should both canonical to /category/news/ — verify this is happening:
+
+// functions.php — force page/1/ to redirect to the base archive URL
+add_action('template_redirect', function(): void {
+    if (is_paged() && get_query_var('paged') == 1) {
+        global $wp;
+        $base_url = home_url(trailingslashit($wp->request));
+        $clean_url = preg_replace('#/page/1/?$#', '/', $base_url);
+        if ($base_url !== $clean_url) {
+            wp_redirect($clean_url, 301);
+            exit;
+        }
+    }
+});
+
+// For paginated pages 2+, Yoast adds rel="next"/"prev" but NOT canonical
+// Google uses rel=next/prev as hints. Add self-referencing canonicals explicitly:
+add_filter('wpseo_canonical', function(string $canonical): string {
+    if (is_paged()) {
+        // Canonical for page N of an archive = the paginated URL itself
+        return get_pagenum_link(get_query_var('paged'));
+    }
+    return $canonical;
+});
+```
+
+3. **Fix UTM parameter and query string canonicalization in Nginx:**
+
+```nginx
+# Nginx — canonicalize common tracking parameters by redirecting to clean URLs
+# Warning: only do this for parameters you OWN; never strip parameters
+# that WordPress or WooCommerce needs for functionality
+
+# Redirect ?utm_* parameters on non-API pages (Google ignores them anyway,
+# but this helps with crawl budget and canonicalization)
+# Better approach: handle in Yoast's "Advanced > Clean up permalinks" settings
+
+# What to do in Nginx:
+# 1. Strip session IDs added by some email clients
+map $args $clean_args {
+    ~*(^|&)sid=[^&]*(&|$) $uri;  # strip ?sid= param
+    default                 "";
+}
+
+# 2. Ensure trailing slash consistency (WordPress uses trailing slashes)
+rewrite ^([^.]*[^/])$ $1/ permanent;
+```
+
+4. **Consolidate tag and author archive pages:**
+
+```php
+// functions.php — noindex thin archive pages with few posts
+// Tags with < 3 posts and author pages for guest authors with < 5 posts
+// should be noindexed to avoid wasting crawl budget on thin content
+
+add_action('wp_head', function(): void {
+    if (is_tag()) {
+        $tag   = get_queried_object();
+        $count = $tag ? $tag->count : 0;
+        if ($count < 3) {
+            echo '<meta name="robots" content="noindex, follow">' . PHP_EOL;
+        }
+    }
+
+    if (is_author()) {
+        $author_id    = get_queried_object_id();
+        $post_count   = count_user_posts($author_id, 'post');
+        if ($post_count < 5) {
+            echo '<meta name="robots" content="noindex, follow">' . PHP_EOL;
+        }
+    }
+
+    // Date archives (year, month, day) provide little unique value
+    if (is_date()) {
+        echo '<meta name="robots" content="noindex, follow">' . PHP_EOL;
+    }
+}, 1);
+```
+
+5. **Disallow crawling of low-value archive URLs in robots.txt:**
+
+```bash
+# View current robots.txt
+curl -s https://example.com/robots.txt
+
+# Update via WordPress (or direct file edit if using a static robots.txt):
+# Add to robots.txt (in Yoast SEO > Tools > File Editor):
+cat << 'EOF'
+User-agent: *
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /?s=            # search result pages
+Disallow: /page/          # root pagination (individual post/category pagination is OK)
+Disallow: /author/        # if all authors are consolidated into one
+Allow: /wp-admin/admin-ajax.php
+
+Sitemap: https://example.com/sitemap.xml
+EOF
+```
+
+6. **Verify canonical implementation and monitor GSC coverage:**
+
+```bash
+# Spot-check canonical tags across URL types
+for url in \
+  "https://example.com/post-slug/" \
+  "https://example.com/category/news/" \
+  "https://example.com/category/news/page/2/" \
+  "https://example.com/tag/wordpress/" \
+  "https://example.com/?p=123"; do
+    canonical=$(curl -sL "$url" | grep -oP '(?<=<link rel="canonical" href=")[^"]+')
+    echo "$url → canonical: $canonical"
+done
+
+# Track progress in GSC: Coverage report should show decreasing
+# "Duplicate without user-selected canonical" count over 4-8 weeks
+# Submit updated sitemap after fixing canonicals
+```
+
+---
+
+## Scenario 7: Google Search Console + GA4 Event Tracking for a WooCommerce Funnel
+
+**Scenario:**
+A WooCommerce store has GA4 installed via GTM but the marketing team lacks visibility into the checkout funnel performance and which organic search queries are driving purchases. They need Search Console data linked to GA4 revenue data, plus custom GA4 events for the full checkout funnel with breakdowns by device and traffic source.
+
+**Challenge:**
+Link Google Search Console to GA4, implement GA4 e-commerce events for the complete WooCommerce funnel, create a custom Exploration report combining organic search landing pages with purchase data, and set up conversion tracking for Google Ads.
+
+**Solution:**
+
+1. **Link Google Search Console to GA4:**
+
+```javascript
+// In GA4 Admin:
+// Property > Search Console Links > Link > Select your GSC property > Next > Submit
+
+// After linking, Search Console data appears in GA4 under:
+// Reports > Life Cycle > Acquisition > Traffic acquisition > filter by "Organic Search"
+// Also available in: Reports > Life Cycle > Acquisition > Google organic search traffic
+
+// Note: SC data in GA4 has a 2-day delay and only shows data for sessions
+// where the user came from Google Search (landing page + query)
+```
+
+2. **Implement GA4 e-commerce events via WooCommerce hooks:**
+
+```php
+// mu-plugins/ga4-woocommerce.php
+// Pushes GA4 standard e-commerce events to dataLayer for GTM to forward to GA4
+
+/**
+ * Helper: build a GA4 item array from a WooCommerce product/cart item.
+ */
+function ga4_build_item(array $cart_item): array {
+    $product = $cart_item['data'];
+    $cats    = get_the_terms($product->get_id(), 'product_cat') ?: [];
+    return [
+        'item_id'       => $product->get_sku() ?: (string) $product->get_id(),
+        'item_name'     => $product->get_name(),
+        'item_category' => implode('/', wp_list_pluck($cats, 'name')),
+        'price'         => (float) $product->get_price(),
+        'quantity'      => (int) $cart_item['quantity'],
+    ];
+}
+
+/**
+ * Helper: print a dataLayer.push() call inline.
+ */
+function ga4_print_datalayer(array $event): void {
+    printf(
+        '<script>window.dataLayer=window.dataLayer||[];window.dataLayer.push({ecommerce:null});window.dataLayer.push(%s);</script>' . PHP_EOL,
+        wp_json_encode($event, JSON_UNESCAPED_SLASHES)
+    );
+}
+
+// view_item — product page
+add_action('woocommerce_after_single_product_summary', function(): void {
+    global $product;
+    if (!$product) return;
+    ga4_print_datalayer([
+        'event'     => 'view_item',
+        'ecommerce' => [
+            'currency' => get_woocommerce_currency(),
+            'value'    => (float) $product->get_price(),
+            'items'    => [[
+                'item_id'   => $product->get_sku() ?: (string) $product->get_id(),
+                'item_name' => $product->get_name(),
+                'price'     => (float) $product->get_price(),
+                'quantity'  => 1,
+            ]],
+        ],
+    ]);
+}, 5);
+
+// add_to_cart — fired via JS event (Woo fires wc-add-to-cart-variation JS event)
+add_action('woocommerce_after_add_to_cart_button', function(): void {
+    global $product;
+    if (!$product) return;
+    $item = [
+        'item_id'   => $product->get_sku() ?: (string) $product->get_id(),
+        'item_name' => $product->get_name(),
+        'price'     => (float) $product->get_price(),
+        'quantity'  => 1,
+    ];
+    ?>
+    <script>
+    document.querySelector('.single_add_to_cart_button')?.addEventListener('click', function() {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ecommerce: null});
+        window.dataLayer.push({
+            event: 'add_to_cart',
+            ecommerce: {
+                currency: '<?= esc_js(get_woocommerce_currency()) ?>',
+                value: <?= json_encode((float) $product->get_price()) ?>,
+                items: [<?= wp_json_encode($item) ?>]
+            }
+        });
+    });
+    </script>
+    <?php
+});
+
+// purchase — on thank you page (deduplication via order meta)
+add_action('woocommerce_thankyou', function(int $order_id): void {
+    if (get_post_meta($order_id, '_ga4_tracked', true)) return;
+
+    $order = wc_get_order($order_id);
+    if (!$order) return;
+
+    $items = [];
+    foreach ($order->get_items() as $item) {
+        $product = $item->get_product();
+        $cats    = $product ? (get_the_terms($item->get_product_id(), 'product_cat') ?: []) : [];
+        $items[] = [
+            'item_id'       => $product ? ($product->get_sku() ?: (string) $item->get_product_id()) : '',
+            'item_name'     => $item->get_name(),
+            'item_category' => implode('/', wp_list_pluck($cats, 'name')),
+            'price'         => (float) ($item->get_total() / max($item->get_quantity(), 1)),
+            'quantity'      => $item->get_quantity(),
+        ];
+    }
+
+    ga4_print_datalayer([
+        'event'     => 'purchase',
+        'ecommerce' => [
+            'transaction_id' => (string) $order->get_order_number(),
+            'value'          => (float) $order->get_total(),
+            'tax'            => (float) $order->get_total_tax(),
+            'shipping'       => (float) $order->get_shipping_total(),
+            'currency'       => $order->get_currency(),
+            'coupon'         => implode(',', $order->get_coupon_codes()),
+            'items'          => $items,
+        ],
+    ]);
+
+    update_post_meta($order_id, '_ga4_tracked', true);
+}, 10);
+```
+
+3. **GTM container setup for the WooCommerce funnel:**
+
+```javascript
+// GTM Tags to create (one per event):
+// Tag: GA4 - View Item          | Trigger: Custom Event "view_item"          | E-commerce: Data Layer
+// Tag: GA4 - Add to Cart        | Trigger: Custom Event "add_to_cart"        | E-commerce: Data Layer
+// Tag: GA4 - Begin Checkout     | Trigger: Custom Event "begin_checkout"     | E-commerce: Data Layer
+// Tag: GA4 - Purchase           | Trigger: Custom Event "purchase"           | E-commerce: Data Layer
+
+// For all GA4 e-commerce tags:
+// - Tag Type: Google Tag - GA4 Event
+// - Measurement ID: {{Constant - GA4 Measurement ID}}
+// - Event Name: {{DLV Event}} (reads from dataLayer)
+// - E-commerce section: ENABLED, Data source: Data Layer
+
+// Mark "purchase" as a conversion in GA4:
+// GA4 Admin > Events > Find "purchase" > Toggle "Mark as conversion"
+```
+
+4. **Create a custom Exploration: Organic Search → Purchase attribution:**
+
+```javascript
+// In GA4 > Explore > Blank Exploration > add these dimensions and metrics:
+
+// Dimensions:
+// - Landing page + query string  (from Search Console)
+// - Session default channel grouping
+// - Device category
+
+// Metrics:
+// - Sessions
+// - Conversions (purchase)
+// - Purchase revenue
+// - Session conversion rate
+
+// Steps to build:
+// 1. Explore > Blank > Rename "Organic Funnel Analysis"
+// 2. Dimensions: drag in "Landing page + query string", "Session source / medium"
+// 3. Metrics: drag in "Sessions", "Conversions", "Total revenue"
+// 4. Visualization: Free Form table
+// 5. Add filter: "Session default channel grouping" exactly matches "Organic Search"
+// 6. Add segment: "Purchasers" to compare converting vs non-converting organic sessions
+// 7. Date range: Last 90 days for enough purchase volume
+
+// The resulting table shows which organic landing pages drive the most revenue,
+// enabling content investment decisions backed by actual revenue data.
+```
+
+5. **Set up Google Ads conversion import from GA4:**
+
+```javascript
+// In Google Ads: Tools > Conversions > Import > Google Analytics 4 properties
+// Select the "purchase" conversion event
+// Attribution model: Data-driven (recommended) or Last click
+// Conversion window: 30 days (matches most e-commerce consideration cycles)
+
+// Verify the conversion is firing in Google Ads > Conversions:
+// Status should change from "Unverified" to "Recording conversions" within 24-48 hours
+
+// Smart Bidding (Target ROAS or Maximize Conversions) requires 30+ conversions
+// per month before Google's algorithm has enough signal to optimize effectively
+```
+
+6. **Search Console integration: identify top organic landing pages with low conversion:**
+
+```javascript
+// Use the GSC + GA4 linked data in BigQuery (requires GA4 BigQuery export enabled)
+// This query finds organic landing pages with high click volume but low purchase rate
+
+/*
+SELECT
+  sc.query,
+  sc.page,
+  sc.clicks,
+  sc.impressions,
+  sc.position,
+  COUNT(DISTINCT ga.user_pseudo_id) AS sessions,
+  COUNTIF(EXISTS(
+    SELECT 1 FROM UNNEST(ga.event_params) p
+    WHERE p.key = 'event_name' AND p.value.string_value = 'purchase'
+  )) AS purchases,
+  SAFE_DIVIDE(
+    COUNTIF(EXISTS(SELECT 1 FROM UNNEST(ga.event_params) p WHERE p.key = 'event_name' AND p.value.string_value = 'purchase')),
+    COUNT(DISTINCT ga.user_pseudo_id)
+  ) AS conversion_rate
+FROM `my-project.analytics_123456789.events_*` ga
+JOIN `my-project.searchconsole.searchdata_site_impression` sc
+  ON ga.event_params[SAFE_OFFSET(0)].value.string_value = sc.page
+WHERE _TABLE_SUFFIX BETWEEN '20260101' AND '20260331'
+  AND sc.date BETWEEN '2026-01-01' AND '2026-03-31'
+GROUP BY 1, 2, 3, 4, 5
+HAVING clicks > 100
+ORDER BY clicks DESC
+LIMIT 50
+*/
+
+// Pages with high organic clicks but near-zero conversion rate are
+// candidates for CRO (conversion rate optimization) — better CTAs,
+// pricing clarity, or product page improvements.
+```
