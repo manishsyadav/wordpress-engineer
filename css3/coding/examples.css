@@ -1,0 +1,154 @@
+/* ============================================================
+   CSS3 Practical Examples — WordPress Theme Patterns
+   ============================================================ */
+
+/* 1. CSS Custom Properties (Design Tokens) */
+:root {
+  --color-primary:    #0d7377;
+  --color-secondary:  #1e3a5f;
+  --color-accent:     #14a085;
+  --color-text:       #2d3748;
+  --color-muted:      #718096;
+  --color-bg:         #f7fafc;
+  --color-white:      #ffffff;
+
+  --font-base:        'Segoe UI', system-ui, sans-serif;
+  --font-mono:        'Courier New', monospace;
+  --font-size-sm:     0.875rem;
+  --font-size-base:   1rem;
+  --font-size-lg:     1.125rem;
+  --font-size-xl:     1.5rem;
+  --font-size-2xl:    2rem;
+
+  --space-xs:   0.25rem;
+  --space-sm:   0.5rem;
+  --space-md:   1rem;
+  --space-lg:   1.5rem;
+  --space-xl:   2rem;
+  --space-2xl:  3rem;
+
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  16px;
+  --radius-full: 9999px;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg:  0 10px 30px rgba(0,0,0,0.15);
+
+  --transition: 0.2s ease;
+}
+
+/* 2. Reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+img, video { max-width: 100%; height: auto; display: block; }
+input, button, textarea, select { font: inherit; }
+
+/* 3. Fluid Typography with clamp() */
+h1 { font-size: clamp(1.75rem, 4vw, 3rem); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); }
+body { font-size: clamp(1rem, 1.5vw, 1.125rem); }
+
+/* 4. Responsive Grid Layout */
+.grid { display: grid; gap: var(--space-lg); }
+.grid-auto { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+
+/* 5. Flexbox Utilities */
+.flex         { display: flex; }
+.flex-center  { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-col     { display: flex; flex-direction: column; }
+.flex-wrap    { flex-wrap: wrap; }
+.flex-1       { flex: 1; }
+.gap-sm       { gap: var(--space-sm); }
+.gap-md       { gap: var(--space-md); }
+.gap-lg       { gap: var(--space-lg); }
+
+/* 6. Card Component */
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.card__image { aspect-ratio: 16 / 9; overflow: hidden; }
+.card__image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+.card:hover .card__image img { transform: scale(1.05); }
+.card__body { padding: var(--space-lg); }
+.card__title { font-size: var(--font-size-lg); color: var(--color-secondary); margin-bottom: var(--space-sm); }
+
+/* 7. Button Component */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--space-sm);
+  padding: 0.625rem 1.25rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 600; font-size: var(--font-size-sm);
+  cursor: pointer; text-decoration: none;
+  transition: all var(--transition);
+}
+.btn-primary { background: var(--color-primary); color: var(--color-white); }
+.btn-primary:hover { background: var(--color-secondary); }
+.btn-outline { background: transparent; border-color: var(--color-primary); color: var(--color-primary); }
+.btn-outline:hover { background: var(--color-primary); color: var(--color-white); }
+.btn:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+
+/* 8. Performant Animation (GPU only — transform + opacity) */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-in { animation: fadeInUp 0.4s ease forwards; }
+
+/* 9. Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+.skeleton-text  { height: 1em; margin-bottom: 0.5em; }
+.skeleton-image { aspect-ratio: 16/9; }
+
+/* 10. Responsive Image Containers */
+.aspect-ratio-16-9 { aspect-ratio: 16 / 9; overflow: hidden; }
+.aspect-ratio-4-3  { aspect-ratio: 4 / 3; overflow: hidden; }
+.aspect-ratio-1-1  { aspect-ratio: 1; overflow: hidden; }
+.aspect-ratio-16-9 img,
+.aspect-ratio-4-3 img,
+.aspect-ratio-1-1 img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 11. Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: var(--radius-full); }
+
+/* 12. Focus styles for accessibility */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* 13. Print styles */
+@media print {
+  nav, aside, .no-print { display: none !important; }
+  body { font-size: 12pt; color: #000; }
+  a::after { content: " (" attr(href) ")"; }
+}
