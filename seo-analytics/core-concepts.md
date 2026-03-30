@@ -1,5 +1,59 @@
 # Marketing / SEO / GTM / GA — Core Concepts
 
+```mermaid
+flowchart TD
+    USER([User Interaction\ne.g. button click\nform submit\npage view\nvideo play])
+
+    USER -->|"JS code pushes event"| DL
+
+    subgraph DATALAYER["dataLayer — JavaScript Array"]
+        DL["dataLayer.push(&#123;\n  event: 'purchase',\n  ecommerce: &#123;\n    transaction_id: 'T123',\n    value: 99.00,\n    currency: 'USD',\n    items: [...]  &#125;\n&#125;)"]
+    end
+
+    DL -->|"GTM listener detects\nnew dataLayer message"| GTM
+
+    subgraph GTM_CONTAINER["GTM Container (gtm.js)"]
+        direction TB
+        TRIGGER["Trigger Evaluation\nCustom Event: 'purchase'\nPageview / Click triggers\nElement Visibility triggers"]
+        TRIGGER -->|"Trigger condition met"| VARS["Variable Resolution\nData Layer Variables\nJavaScript Variables\nURL / Cookie / DOM variables"]
+        VARS --> TAG_FIRE["Tag Firing\nfire all tags\nassociated with trigger"]
+
+        subgraph TAGS["Tags"]
+            GA4TAG["GA4 Event Tag\nmeasurement_id: G-XXXXX\nevent_name: purchase\nparameters from DL vars"]
+            FBPIX["Meta Pixel Tag\nPurchase event\nvalue + currency"]
+            REMARKETING["Google Ads\nRemarking Tag"]
+            CUSTOM["Custom HTML Tag\nany custom JS"]
+        end
+
+        TAG_FIRE --> GA4TAG
+        TAG_FIRE --> FBPIX
+        TAG_FIRE --> REMARKETING
+        TAG_FIRE --> CUSTOM
+    end
+
+    GA4TAG -->|"HTTPS POST\nto collect endpoint"| GA4
+
+    subgraph GA4_LAYER["Google Analytics 4"]
+        GA4["GA4 Collection Endpoint\nhttps://analytics.google.com/g/collect\nEvent + parameter validation\nUser / session stitching"]
+        GA4 --> REPORTS["GA4 Reports\nRealtime / Explore\nConversions / Funnels\nAudience builder"]
+        GA4 --> BQ_EXPORT["BigQuery Export\nDaily / Streaming\nRaw event-level data\nevents_YYYYMMDD tables"]
+    end
+
+    BQ_EXPORT --> BQ
+
+    subgraph BQ_LAYER["BigQuery + Reporting"]
+        BQ["BigQuery\nSQL analysis on raw events\nLooker Studio dashboards\nML models / Attribution"]
+    end
+
+    FBPIX -->|"Pixel tracking call"| META["Meta / Facebook\nAds Manager\nCustom Audiences\nConversion tracking"]
+
+    style USER fill:#3498db,color:#fff
+    style DL fill:#f39c12,color:#fff
+    style GTM_CONTAINER fill:#27ae60,color:#fff
+    style GA4 fill:#e74c3c,color:#fff
+    style BQ fill:#9b59b6,color:#fff
+```
+
 ## 1. Technical SEO Fundamentals
 
 Technical SEO ensures search engines can crawl, index, and understand your site.

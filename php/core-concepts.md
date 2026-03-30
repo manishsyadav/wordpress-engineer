@@ -1,5 +1,100 @@
 # PHP — Core Concepts
 
+```mermaid
+classDiagram
+    direction TB
+
+    class Stringable {
+        <<interface>>
+        +__toString() string
+    }
+
+    class Countable {
+        <<interface>>
+        +count() int
+    }
+
+    class Iterator {
+        <<interface>>
+        +current() mixed
+        +key() mixed
+        +next() void
+        +rewind() void
+        +valid() bool
+    }
+
+    class Loggable {
+        <<interface>>
+        +log(string message) void
+    }
+
+    class AbstractRepository {
+        <<abstract>>
+        #wpdb $db
+        #string $table
+        +findById(int id) mixed
+        +findAll() array
+        #abstract buildFromRow(array row) mixed
+    }
+
+    class AbstractBlock {
+        <<abstract>>
+        #string $blockName
+        +render(array attrs, string content) string
+        #abstract getTemplate() string
+        #validate(array attrs) bool
+    }
+
+    class LoggableTrait {
+        <<trait>>
+        -array $logs
+        +log(string message) void
+        +getLogs() array
+    }
+
+    class CacheableTrait {
+        <<trait>>
+        +cached(string key, callable fn, int ttl) mixed
+        +clearCache(string key) void
+    }
+
+    class PostRepository {
+        -string $postType
+        +findBySlug(string slug) WP_Post
+        +findPublished(int limit) array
+        #buildFromRow(array row) WP_Post
+    }
+
+    class EventBlock {
+        -string $blockName = "my-plugin/event"
+        +render(array attrs, string content) string
+        #getTemplate() string
+    }
+
+    class Status {
+        <<enumeration>>
+        Draft
+        Published
+        Archived
+        +label() string
+        +color() string
+    }
+
+    Stringable <|.. PostRepository : implements
+    Countable <|.. PostRepository : implements
+    Loggable <|.. PostRepository : implements
+    Iterator <|.. PostRepository : implements
+
+    AbstractRepository <|-- PostRepository : extends
+    AbstractBlock <|-- EventBlock : extends
+
+    LoggableTrait <.. PostRepository : uses
+    LoggableTrait <.. EventBlock : uses
+    CacheableTrait <.. PostRepository : uses
+
+    PostRepository --> Status : uses
+```
+
 ## 1. Type System and Type Declarations
 
 PHP 8.x has a rich type system. Scalar types (`int`, `float`, `string`, `bool`), compound types (`array`, `callable`, `iterable`), and class types can all be declared for parameters, return values, and properties.

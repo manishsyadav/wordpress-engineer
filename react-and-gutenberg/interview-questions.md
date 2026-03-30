@@ -9,6 +9,7 @@
 ## Basic
 
 **Q1: What is the Virtual DOM?**
+
 **A:** A lightweight in-memory representation of the real DOM. React diffs the new virtual tree against the previous one (reconciliation) and applies only the minimal set of real DOM changes.
 ```jsx
 // React re-renders only the changed <p>, not the whole tree
@@ -18,6 +19,7 @@ function Counter({ count }) {
 ```
 
 **Q2: What is JSX?**
+
 **A:** JSX is a syntax extension that lets you write HTML-like markup inside JavaScript. Babel compiles it to `React.createElement()` calls.
 ```jsx
 const el = <h1 className="title">Hello</h1>;
@@ -26,6 +28,7 @@ const el = React.createElement('h1', { className: 'title' }, 'Hello');
 ```
 
 **Q3: How does `useState` work?**
+
 **A:** `useState` returns the current state value and a setter. Calling the setter with a new value schedules a re-render with the updated state.
 ```jsx
 const [count, setCount] = useState(0);
@@ -34,6 +37,7 @@ setCount(prev => prev + 1);
 ```
 
 **Q4: What is the `useEffect` hook used for?**
+
 **A:** `useEffect` runs side effects after render. The dependency array controls when it re-runs; an empty array means run once on mount. Return a cleanup function to tear down subscriptions.
 ```jsx
 useEffect(() => {
@@ -43,6 +47,7 @@ useEffect(() => {
 ```
 
 **Q5: What does `useCallback` do?**
+
 **A:** `useCallback` returns a memoised version of a callback that only changes when its listed dependencies change. Prevents unnecessary re-renders of child components.
 ```jsx
 const handleClick = useCallback(() => {
@@ -51,6 +56,7 @@ const handleClick = useCallback(() => {
 ```
 
 **Q6: What does `useMemo` do?**
+
 **A:** `useMemo` caches an expensive computed value and recomputes it only when its dependencies change. Avoids redundant heavy calculations on every render.
 ```jsx
 const sorted = useMemo(
@@ -60,6 +66,7 @@ const sorted = useMemo(
 ```
 
 **Q7: What is `useRef` used for?**
+
 **A:** `useRef` holds a mutable ref object whose `.current` persists across renders without triggering a re-render. Used for DOM refs and storing previous values.
 ```jsx
 const inputRef = useRef(null);
@@ -68,6 +75,7 @@ return <input ref={inputRef} />;
 ```
 
 **Q8: What is `useContext`?**
+
 **A:** `useContext` reads the value of a React context, replacing prop drilling for global data like themes or the current user.
 ```jsx
 const theme = useContext(ThemeContext);
@@ -75,6 +83,7 @@ return <div className={theme.bg}>Content</div>;
 ```
 
 **Q9: What is a custom hook?**
+
 **A:** A custom hook is a regular function whose name starts with `use` that encapsulates reusable stateful logic. It can call other hooks internally.
 ```jsx
 function useWindowWidth() {
@@ -89,6 +98,7 @@ function useWindowWidth() {
 ```
 
 **Q10: What does `React.memo` do?**
+
 **A:** `React.memo` wraps a functional component and prevents re-rendering if props have not changed (shallow comparison). Useful for list items or expensive components.
 ```jsx
 const Card = React.memo(function Card({ title }) {
@@ -97,12 +107,14 @@ const Card = React.memo(function Card({ title }) {
 ```
 
 **Q11: Why must list items have a unique `key` prop?**
+
 **A:** React uses `key` to identify which items changed, were added, or removed during reconciliation. Unstable keys (e.g. array index) cause incorrect reuse of DOM nodes.
 ```jsx
 posts.map(post => <li key={post.id}>{post.title}</li>)
 ```
 
 **Q12: What is the difference between controlled and uncontrolled inputs?**
+
 **A:** A controlled input's value is driven by React state. An uncontrolled input stores its own value in the DOM and is read via a ref.
 ```jsx
 // Controlled
@@ -112,6 +124,7 @@ posts.map(post => <li key={post.id}>{post.title}</li>)
 ```
 
 **Q13: What is `block.json` in Gutenberg?**
+
 **A:** `block.json` is the metadata file that declares a block's name, title, category, attributes, supports, icon, and script handles. WordPress reads it to register the block.
 ```json
 {
@@ -126,6 +139,7 @@ posts.map(post => <li key={post.id}>{post.title}</li>)
 ```
 
 **Q14: How do you register a block with `registerBlockType`?**
+
 **A:** Call `registerBlockType` with the block name and a settings object containing `edit` and `save` functions. The name must match `block.json`.
 ```javascript
 import { registerBlockType } from '@wordpress/blocks';
@@ -138,6 +152,7 @@ registerBlockType('myplugin/card', {
 ```
 
 **Q15: What attribute types are available in Gutenberg blocks?**
+
 **A:** Blocks support `string`, `number`, `boolean`, `array`, `object`, and the special `rich-text` source type for RichText-editable content.
 ```json
 "attributes": {
@@ -149,6 +164,7 @@ registerBlockType('myplugin/card', {
 ```
 
 **Q16: What is the `edit` function responsible for?**
+
 **A:** The `edit` function renders the block inside the editor. It receives `attributes`, `setAttributes`, and `className` as props and is not used on the front end.
 ```jsx
 export function Edit({ attributes, setAttributes, className }) {
@@ -164,6 +180,7 @@ export function Edit({ attributes, setAttributes, className }) {
 ```
 
 **Q17: What is the `save` function responsible for?**
+
 **A:** `save` returns the static HTML stored in the post. For dynamic blocks rendered in PHP, return `null` from `save`.
 ```jsx
 export function Save({ attributes }) {
@@ -174,6 +191,7 @@ export function Save() { return null; }
 ```
 
 **Q18: What does `InspectorControls` do?**
+
 **A:** `InspectorControls` renders controls in the block's sidebar (Inspector) inside the editor. Wrap UI inside `PanelBody` / `PanelRow` for consistent styling.
 ```jsx
 import { InspectorControls } from '@wordpress/block-editor';
@@ -191,6 +209,7 @@ import { PanelBody, ToggleControl } from '@wordpress/components';
 ```
 
 **Q19: How do you use `RichText` in a Gutenberg block?**
+
 **A:** `RichText` provides a contenteditable field linked to an attribute. Use `value`, `onChange`, `tagName`, and `allowedFormats` props.
 ```jsx
 import { RichText } from '@wordpress/block-editor';
@@ -204,6 +223,7 @@ import { RichText } from '@wordpress/block-editor';
 ```
 
 **Q20: How do you use `MediaUpload` to select an image?**
+
 **A:** Wrap `MediaUploadCheck` around `MediaUpload` for capability checking. The `onSelect` callback receives the chosen media object.
 ```jsx
 import { MediaUpload, MediaUploadCheck } from '@wordpress/block-editor';
@@ -223,6 +243,7 @@ import { Button } from '@wordpress/components';
 ## Mid
 
 **Q21: How does `InnerBlocks` work?**
+
 **A:** `InnerBlocks` renders a nested block area inside your block. Use `allowedBlocks` to restrict block types and `template` to pre-populate child blocks.
 ```jsx
 import { InnerBlocks } from '@wordpress/block-editor';
@@ -237,6 +258,7 @@ const TEMPLATE = [['core/heading', { level: 2 }], ['core/paragraph']];
 ```
 
 **Q22: How do you build a dynamic block with `ServerSideRender`?**
+
 **A:** Use `ServerSideRender` in `edit` to preview the block by calling its PHP `render_callback`, and return `null` from `save`.
 ```jsx
 import ServerSideRender from '@wordpress/server-side-render';
@@ -248,6 +270,7 @@ export function Save() { return null; }
 ```
 
 **Q23: How do you register a dynamic block's PHP render callback?**
+
 **A:** Pass `render_callback` to `register_block_type()`. WordPress calls it with `$attributes` and `$content` when the block is rendered on the front end.
 ```php
 register_block_type(__DIR__, [
@@ -261,6 +284,7 @@ register_block_type(__DIR__, [
 ```
 
 **Q24: How do you read data from the block editor store with `useSelect`?**
+
 **A:** Call `useSelect` with a selector function. Pass the store name and selector; it re-renders when the selected data changes.
 ```javascript
 import { useSelect } from '@wordpress/data';
@@ -271,6 +295,7 @@ const postTitle = useSelect(select =>
 ```
 
 **Q25: How do you dispatch an action with `useDispatch`?**
+
 **A:** Call `useDispatch` with the store name to get its action creators. Call the action creator to trigger the change.
 ```javascript
 import { useDispatch } from '@wordpress/data';
@@ -280,6 +305,7 @@ editPost({ title: 'New Title' });
 ```
 
 **Q26: How do you use `@wordpress/api-fetch` inside a block?**
+
 **A:** Import `apiFetch` and call it with a path. It automatically sets the nonce header so authenticated requests work in the editor.
 ```javascript
 import apiFetch from '@wordpress/api-fetch';
@@ -292,6 +318,7 @@ useEffect(() => {
 ```
 
 **Q27: How do you create block transforms from a shortcode?**
+
 **A:** Add a `from` entry in `transforms` with `type: 'shortcode'` and a `transform` function that maps shortcode attrs to block attributes.
 ```javascript
 transforms: {
@@ -304,6 +331,7 @@ transforms: {
 ```
 
 **Q28: What are block variations?**
+
 **A:** Block variations are predefined configurations of an existing block registered with `registerBlockVariation`. They appear as distinct options in the inserter.
 ```javascript
 import { registerBlockVariation } from '@wordpress/blocks';
@@ -317,6 +345,7 @@ registerBlockVariation('core/group', {
 ```
 
 **Q29: How do you register a block style?**
+
 **A:** Call `registerBlockStyle` with the block name, a style name, and a label. WordPress adds `is-style-{name}` to the block's wrapper class.
 ```javascript
 import { registerBlockStyle } from '@wordpress/blocks';
@@ -328,6 +357,7 @@ registerBlockStyle('core/button', {
 ```
 
 **Q30: What is `theme.json` used for in Full Site Editing?**
+
 **A:** `theme.json` centralises design tokens (colours, typography, spacing) and controls which block supports are enabled. Styles are applied globally and per block.
 ```json
 {
@@ -340,6 +370,7 @@ registerBlockStyle('core/button', {
 ```
 
 **Q31: How do you register a block pattern?**
+
 **A:** Call `register_block_pattern()` in PHP with a name and an array of properties including `title`, `categories`, and `content`.
 ```php
 register_block_pattern('myplugin/hero-banner', [
@@ -350,6 +381,7 @@ register_block_pattern('myplugin/hero-banner', [
 ```
 
 **Q32: How do you add block supports in `block.json`?**
+
 **A:** Set the `supports` key with the features you want. WordPress automatically adds editor controls and CSS class or inline style output.
 ```json
 "supports": {
@@ -360,6 +392,7 @@ register_block_pattern('myplugin/hero-banner', [
 ```
 
 **Q33: What is `templateParts` in `theme.json`?**
+
 **A:** Template parts are reusable sections (header, footer, sidebar) defined in the theme's `parts/` folder and listed under `templateParts` in `theme.json`.
 ```json
 "templateParts": [
@@ -369,6 +402,7 @@ register_block_pattern('myplugin/hero-banner', [
 ```
 
 **Q34: What is Full Site Editing (FSE)?**
+
 **A:** FSE extends the block editor to control the entire site layout, including templates and template parts, through the Site Editor (`/wp-admin/site-editor.php`). Requires a block theme.
 ```
 Appearance → Editor → Templates → Front Page
@@ -376,6 +410,7 @@ All editable with blocks; stored as custom post types.
 ```
 
 **Q35: How do you use `customTemplates` in `theme.json`?**
+
 **A:** Declare page templates under `customTemplates`. WordPress shows them in the "Template" panel when editing a page.
 ```json
 "customTemplates": [
@@ -388,6 +423,7 @@ All editable with blocks; stored as custom post types.
 ```
 
 **Q36: How do you pass example attribute values to the block previewer?**
+
 **A:** Set the `example` key in `block.json` (or `registerBlockType`) with a sample attributes object. Shown in the block inserter preview.
 ```json
 "example": {
@@ -399,6 +435,7 @@ All editable with blocks; stored as custom post types.
 ```
 
 **Q37: How do you lock an `InnerBlocks` template?**
+
 **A:** Set `templateLock` to `"all"` to prevent adding, removing, or moving child blocks. Use `"insert"` to lock only add/remove actions.
 ```jsx
 <InnerBlocks
@@ -408,6 +445,7 @@ All editable with blocks; stored as custom post types.
 ```
 
 **Q38: How does `block_type_metadata_settings` help with dynamic blocks?**
+
 **A:** The `block_type_metadata_settings` filter (WP 6.3+) lets you modify block type settings when registering from `block.json`, including adding a `render_callback` programmatically.
 ```php
 add_filter('block_type_metadata_settings', function ($settings, $metadata) {
@@ -419,6 +457,7 @@ add_filter('block_type_metadata_settings', function ($settings, $metadata) {
 ```
 
 **Q39: What is the difference between `useSelect` and directly calling `wp.data.select`?**
+
 **A:** `useSelect` is a React hook that automatically subscribes to store changes and triggers re-renders. `wp.data.select` is a one-time read with no reactivity.
 ```javascript
 // Reactive — re-renders on change
@@ -429,6 +468,7 @@ const title = wp.data.select('core/editor').getEditedPostAttribute('title');
 ```
 
 **Q40: How do you handle cleanup in `useEffect` when fetching data?**
+
 **A:** Use an `isMounted` flag or an `AbortController` so the state setter is not called after the component unmounts, preventing memory leaks.
 ```jsx
 useEffect(() => {
@@ -445,6 +485,7 @@ useEffect(() => {
 ## Advanced
 
 **Q41: How does React reconciliation decide what to update in the DOM?**
+
 **A:** React performs a depth-first tree diff. It replaces a subtree when the element type changes, and updates props when the type is the same. The `key` prop lets React match list children across renders, avoiding full subtree teardown.
 ```jsx
 // Without key React can't tell if items were reordered
@@ -452,6 +493,7 @@ useEffect(() => {
 ```
 
 **Q42: How do you prevent unnecessary re-renders when passing object props?**
+
 **A:** Memoize the object with `useMemo` so its reference stays stable across renders, preventing `React.memo` wrapped children from re-rendering needlessly.
 ```jsx
 const config = useMemo(() => ({ color: primary, size: large }), [primary, large]);
@@ -459,6 +501,7 @@ return <Chart config={config} />;
 ```
 
 **Q43: How do you implement a block with both edit-time controls and a PHP-rendered front end that stays in sync?**
+
 **A:** Store all display options as block attributes. Use `ServerSideRender` in `edit` so the editor preview is driven by the same PHP `render_callback` used on the front end.
 ```jsx
 // edit
@@ -472,6 +515,7 @@ function myplugin_render_stats(array $attributes): string {
 ```
 
 **Q44: How do you manage global editor state across multiple blocks using a custom store?**
+
 **A:** Register a custom `@wordpress/data` store with `register`. Blocks `useSelect` and `useDispatch` against that store name.
 ```javascript
 import { register, createReduxStore } from '@wordpress/data';
@@ -485,6 +529,7 @@ register(store);
 ```
 
 **Q45: How do you write a Jest unit test for a Gutenberg block's `save` output?**
+
 **A:** Use `@wordpress/blocks`'s `serialize` helper or Snapshot testing with `@wordpress/jest-console` to assert the exact serialised HTML.
 ```javascript
 import { serialize } from '@wordpress/blocks';
@@ -501,6 +546,7 @@ test('save renders expected HTML', () => {
 ```
 
 **Q46: How do you implement block deprecations in Gutenberg?**
+
 **A:** Add a `deprecated` array to `registerBlockType`. Each entry has the old `attributes` schema and a `migrate` function to convert old data to the new schema.
 ```javascript
 deprecated: [
@@ -513,6 +559,7 @@ deprecated: [
 ```
 
 **Q47: How do you use block context to pass data from a parent block to descendants?**
+
 **A:** Declare `providesContext` in the parent's `block.json` and `usesContext` in the child. The context value flows down without prop drilling.
 ```json
 // Parent block.json
@@ -529,6 +576,7 @@ export function Edit({ context }) {
 ```
 
 **Q48: How do you lazy-load heavy editor dependencies in a Gutenberg block?**
+
 **A:** Use dynamic `import()` inside an event handler or `useEffect` so the heavy module is not included in the initial JS bundle.
 ```jsx
 async function handleChartClick() {
@@ -538,6 +586,7 @@ async function handleChartClick() {
 ```
 
 **Q49: How do you register a block collection and why is it useful?**
+
 **A:** `registerBlockCollection` groups your plugin's blocks under a named section in the block inserter, improving discoverability for users.
 ```javascript
 import { registerBlockCollection } from '@wordpress/blocks';
@@ -549,6 +598,7 @@ registerBlockCollection('myplugin', {
 ```
 
 **Q50: How do you test a custom `useSelect` hook in isolation with `@wordpress/data` mocking?**
+
 **A:** Use `jest.spyOn` or `dispatch` a mock store state before rendering, then assert on the returned value using `@testing-library/react`.
 ```javascript
 import { render } from '@testing-library/react';

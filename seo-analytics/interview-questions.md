@@ -9,6 +9,7 @@
 ## Basic
 
 **Q1: What is a title tag and what is the recommended formula for WordPress pages?**
+
 **A:** The `<title>` tag is the primary on-page SEO signal and the clickable text in SERPs. Keep it under 60 characters using the pattern: Primary Keyword | Brand Name.
 ```html
 <title>Buy Running Shoes Online | AcmeStore</title>
@@ -17,6 +18,7 @@
 ---
 
 **Q2: What is a meta description and does it directly affect rankings?**
+
 **A:** Meta descriptions do not directly influence rankings but improve click-through rate. Keep them under 160 characters and include a call to action.
 ```html
 <meta name="description"
@@ -26,6 +28,7 @@
 ---
 
 **Q3: What is the correct heading hierarchy for SEO?**
+
 **A:** One `<h1>` per page (primary keyword), `<h2>` for main sections, `<h3>` for subsections. Headings signal content structure to crawlers and screen readers.
 ```html
 <h1>Best Running Shoes for 2026</h1>
@@ -37,6 +40,7 @@
 ---
 
 **Q4: What is a canonical URL and when do you use it?**
+
 **A:** A canonical tag tells search engines which URL is the preferred version when duplicate or near-duplicate content exists across multiple URLs.
 ```html
 <!-- On https://example.com/shoes?sort=price -->
@@ -46,6 +50,7 @@
 ---
 
 **Q5: What is a `robots.txt` file and what can it control?**
+
 **A:** `robots.txt` instructs crawlers which paths to exclude from crawling. It does not prevent indexing — use `noindex` for that.
 ```
 User-agent: *
@@ -58,6 +63,7 @@ Sitemap: https://example.com/sitemap.xml
 ---
 
 **Q6: What is an XML sitemap and why does it matter?**
+
 **A:** An XML sitemap lists a site's important URLs to help search engines discover and prioritise content, especially for large or newly launched sites.
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -74,6 +80,7 @@ Sitemap: https://example.com/sitemap.xml
 ---
 
 **Q7: What is the difference between `noindex` and `nofollow`?**
+
 **A:** `noindex` prevents the page from appearing in search results. `nofollow` tells crawlers not to pass link equity to linked pages. They are independent directives.
 ```html
 <!-- Block page from index, but still follow its links -->
@@ -86,6 +93,7 @@ Sitemap: https://example.com/sitemap.xml
 ---
 
 **Q8: What are Open Graph tags and why are they important?**
+
 **A:** OG tags control how a page appears when shared on social media. `og:title`, `og:description`, and `og:image` are the most critical.
 ```html
 <meta property="og:title" content="Best Running Shoes 2026">
@@ -97,6 +105,7 @@ Sitemap: https://example.com/sitemap.xml
 ---
 
 **Q9: What are Core Web Vitals and what are their passing thresholds?**
+
 **A:** Core Web Vitals are Google's UX metrics: LCP (Largest Contentful Paint) < 2.5s, CLS (Cumulative Layout Shift) < 0.1, INP (Interaction to Next Paint) < 200ms.
 ```
 LCP  ≤ 2.5s  — Good   | 2.5–4.0s — Needs Improvement | > 4.0s — Poor
@@ -107,6 +116,7 @@ INP  ≤ 200ms — Good   | 200–500ms — Needs Improvement  | > 500ms — Poo
 ---
 
 **Q10: What is JSON-LD Schema markup and what types are used for WordPress sites?**
+
 **A:** JSON-LD is the recommended format for injecting structured data. Common types: `Article`, `Product`, `FAQPage`, `BreadcrumbList`, `WebSite`, `LocalBusiness`.
 ```html
 <script type="application/ld+json">
@@ -123,6 +133,7 @@ INP  ≤ 200ms — Good   | 200–500ms — Needs Improvement  | > 500ms — Poo
 ---
 
 **Q11: What is hreflang and when do you use it?**
+
 **A:** `hreflang` tells Google which language/region version of a page to serve to which audience. Use `x-default` for the fallback when no other tag matches.
 ```html
 <link rel="alternate" hreflang="en" href="https://example.com/en/shoes/">
@@ -133,6 +144,7 @@ INP  ≤ 200ms — Good   | 200–500ms — Needs Improvement  | > 500ms — Poo
 ---
 
 **Q12: What is Google Analytics 4 (GA4) and how does it differ from Universal Analytics?**
+
 **A:** GA4 is event-based — every interaction is an event with parameters. UA used a session/pageview-hit model. GA4 supports BigQuery export natively and has no sampling on raw data.
 ```javascript
 // GA4 custom event via gtag.js
@@ -146,6 +158,7 @@ gtag('event', 'add_to_cart', {
 ---
 
 **Q13: What is the `dataLayer` in Google Tag Manager?**
+
 **A:** `dataLayer` is a JavaScript array used to pass data from the page to GTM. Tags read variables from it; you push objects to add new data.
 ```javascript
 window.dataLayer = window.dataLayer || [];
@@ -159,6 +172,7 @@ dataLayer.push({
 ---
 
 **Q14: What is a GTM trigger and what are the common trigger types?**
+
 **A:** A trigger tells GTM when to fire a tag. Common types: Page View, DOM Ready, Window Loaded, Click — All Elements, Click — Just Links, Custom Event (matched against `dataLayer.event`).
 ```
 Trigger: Custom Event
@@ -169,6 +183,7 @@ Event Name: form_submit
 ---
 
 **Q15: What is Consent Mode v2 and why did Google introduce it?**
+
 **A:** Consent Mode v2 lets sites signal user consent status to Google tags. Google uses behavioural modelling to fill measurement gaps when consent is denied, maintaining compliance with GDPR/DMA.
 ```javascript
 gtag('consent', 'default', {
@@ -182,6 +197,7 @@ gtag('consent', 'default', {
 ---
 
 **Q16: How do you update Consent Mode after a user grants consent?**
+
 **A:** Call `gtag('consent', 'update', {...})` with `'granted'` values after the user accepts in the CMP. GTM picks this up and retroactively fires pending tags.
 ```javascript
 // Called by the CMP on user accept
@@ -195,6 +211,7 @@ dataLayer.push({ event: 'consent_update' });
 ---
 
 **Q17: What is Google Search Console and what are its most useful reports?**
+
 **A:** Search Console shows how Google crawls and indexes a site. Key reports: Performance (queries/clicks/CTR), Coverage (indexed vs excluded URLs), Core Web Vitals, Rich Results, and Manual Actions.
 ```
 Coverage Report → check "Excluded" tab for:
@@ -207,6 +224,7 @@ Coverage Report → check "Excluded" tab for:
 ---
 
 **Q18: What is E-E-A-T and how does it relate to Google's ranking signals?**
+
 **A:** E-E-A-T stands for Experience, Expertise, Authoritativeness, and Trustworthiness. It is a quality rater guideline framework that informs how Google algorithms assess content quality, especially for YMYL topics.
 ```
 Signals that support E-E-A-T:
@@ -220,6 +238,7 @@ Signals that support E-E-A-T:
 ---
 
 **Q19: How do you add Yoast SEO meta tags via WordPress hooks?**
+
 **A:** Yoast fires `wpseo_title` and `wpseo_metadesc` filters to let you programmatically override titles and descriptions.
 ```php
 add_filter('wpseo_title', function($title) {
@@ -233,6 +252,7 @@ add_filter('wpseo_title', function($title) {
 ---
 
 **Q20: What is crawl budget and how do you optimise it for large WordPress sites?**
+
 **A:** Crawl budget is the number of pages Googlebot crawls in a given timeframe. Conserve it by noindexing low-value pages (tags, author archives, search results) and keeping the sitemap clean.
 ```php
 // Noindex tag and author archives via Yoast or custom meta
@@ -248,6 +268,7 @@ add_action('wp_head', function() {
 ## Mid
 
 **Q21: How do you implement FAQ Schema markup in WordPress with JSON-LD?**
+
 **A:** Inject a `FAQPage` JSON-LD block in `wp_head`. Each question/answer pair goes in the `mainEntity` array.
 ```php
 add_action('wp_head', function() {
@@ -267,6 +288,7 @@ add_action('wp_head', function() {
 ---
 
 **Q22: How do you track WooCommerce purchase events in GA4 via GTM?**
+
 **A:** Push an `ecommerce` object to `dataLayer` on the order confirmation page using the `woocommerce_thankyou` hook, then fire a GA4 Purchase tag in GTM on the `purchase` custom event.
 ```php
 add_action('woocommerce_thankyou', function($order_id) {
@@ -287,6 +309,7 @@ add_action('woocommerce_thankyou', function($order_id) {
 ---
 
 **Q23: How do you configure a GTM Custom HTML tag to fire only on DOM Ready?**
+
 **A:** Select the "DOM Ready" trigger type in GTM. This ensures the tag fires after the DOM is parsed but before all resources load, making DOM queries reliable.
 ```javascript
 // Custom HTML tag body — safe to query DOM elements
@@ -303,6 +326,7 @@ add_action('woocommerce_thankyou', function($order_id) {
 ---
 
 **Q24: How do you set up GA4 conversion events?**
+
 **A:** In GA4, mark any existing event as a conversion in Admin → Events → toggle "Mark as conversion". For custom events, ensure they are sending data before marking them.
 ```javascript
 // Ensure this event fires before marking it as conversion
@@ -315,6 +339,7 @@ gtag('event', 'generate_lead', {
 ---
 
 **Q25: How do you use GTM's Preview mode for debugging?**
+
 **A:** Click "Preview" in GTM to open Tag Assistant. It shows which tags fired, which triggers matched, and the full dataLayer state at each event, without publishing changes to production.
 ```
 Tag Assistant summary view:
@@ -329,6 +354,7 @@ Tag Assistant summary view:
 ---
 
 **Q26: How do you implement BreadcrumbList Schema in WordPress?**
+
 **A:** Build the `itemListElement` array from the current page's breadcrumb trail (taxonomy + post type + title) and output JSON-LD in `wp_head`.
 ```php
 add_action('wp_head', function() {
@@ -350,6 +376,7 @@ add_action('wp_head', function() {
 ---
 
 **Q27: How do you use Google Search Console to diagnose a Core Web Vitals failure?**
+
 **A:** The CWV report groups URLs by status (Poor/Needs Improvement/Good) and metric. Click a group to see example URLs, then use the CrUX data alongside PageSpeed Insights for element-level diagnosis.
 ```
 Search Console → Core Web Vitals → Mobile
@@ -362,6 +389,7 @@ Search Console → Core Web Vitals → Mobile
 ---
 
 **Q28: How do you improve LCP on a WordPress site?**
+
 **A:** Preload the LCP image, serve it in WebP, use a CDN, and eliminate render-blocking resources above the fold.
 ```html
 <!-- Preload hero image in <head> -->
@@ -374,6 +402,7 @@ Search Console → Core Web Vitals → Mobile
 ---
 
 **Q29: How do you prevent CLS caused by images on a WordPress site?**
+
 **A:** Always specify `width` and `height` attributes on `<img>` tags. Modern browsers use these to reserve space before the image loads, preventing layout shifts.
 ```html
 <!-- Explicit dimensions prevent layout shift -->
@@ -384,6 +413,7 @@ Search Console → Core Web Vitals → Mobile
 ---
 
 **Q30: What is the difference between subdomain, subdirectory, and ccTLD for international SEO?**
+
 **A:** Subdirectory (`example.com/de/`) inherits domain authority and is easiest to manage. Subdomain (`de.example.com`) is treated as a separate site by some signals. ccTLD (`example.de`) sends the strongest geo signal but requires separate authority building.
 ```
 example.com/de/   — recommended for most sites (inherits authority)
@@ -394,6 +424,7 @@ example.de        — strongest geo signal; separate authority needed
 ---
 
 **Q31: How do you implement hreflang in WordPress without a plugin?**
+
 **A:** Hook into `wp_head` and output `<link rel="alternate" hreflang="...">` tags for each language version, building URLs from a static map or a multilingual plugin's API.
 ```php
 add_action('wp_head', function() {
@@ -408,6 +439,7 @@ add_action('wp_head', function() {
 ---
 
 **Q32: How do you export GA4 raw data to BigQuery?**
+
 **A:** Link GA4 to a GCP project in Admin → BigQuery Links. GA4 exports a daily events table (`events_YYYYMMDD`) and an intraday table to the specified BigQuery dataset.
 ```sql
 -- Count purchases in the last 7 days from BigQuery export
@@ -423,6 +455,7 @@ WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 7
 ---
 
 **Q33: How do you use GTM to implement scroll-depth tracking?**
+
 **A:** Use GTM's built-in Scroll Depth trigger, configure percentage thresholds, and fire a GA4 event tag with `scroll_depth_threshold` as a parameter.
 ```
 GTM Trigger: Scroll Depth
@@ -438,6 +471,7 @@ GTM Tag: GA4 Event
 ---
 
 **Q34: What are `nofollow`, `sponsored`, and `ugc` link attributes?**
+
 **A:** All three tell Google not to pass PageRank. `rel="sponsored"` is for paid links; `rel="ugc"` is for user-generated content (comments, forums). Use `nofollow` as a generic fallback.
 ```html
 <!-- Paid partnership link -->
@@ -450,6 +484,7 @@ GTM Tag: GA4 Event
 ---
 
 **Q35: How do you set up GTM to track outbound link clicks?**
+
 **A:** Use a Click — Just Links trigger with a condition that the Click URL does not contain your domain. Fire a GA4 event tag with the URL as a parameter.
 ```
 GTM Trigger: Click — Just Links
@@ -465,6 +500,7 @@ GTM Tag: GA4 Event
 ---
 
 **Q36: How do you use RankMath's `rank_math/head` filter to inject custom meta?**
+
 **A:** Hook into `rank_math/head` (fires inside `<head>` alongside RankMath output) to output custom structured data or meta tags.
 ```php
 add_action('rank_math/head', function() {
@@ -477,6 +513,7 @@ add_action('rank_math/head', function() {
 ---
 
 **Q37: How do you handle paginated content for SEO in WordPress?**
+
 **A:** Use `rel="next"` and `rel="prev"` link tags for paginated archives. Ensure each page has a unique title and description. Avoid noindexing paginated pages that have unique content.
 ```php
 // Output rel=next/prev in wp_head for paginated archives
@@ -491,6 +528,7 @@ add_action('wp_head', function() {
 ---
 
 **Q38: How do you disavow toxic backlinks in Google Search Console?**
+
 **A:** Export the links report, compile toxic domains into a disavow file, and submit it via the Search Console Disavow Tool. Use this only after manual outreach has failed.
 ```
 # disavow.txt format
@@ -505,6 +543,7 @@ domain:link-farm-example.com
 ---
 
 **Q39: How do you measure the impact of an SEO change using Search Console data?**
+
 **A:** Use the Performance report's date comparison feature. Filter by the affected URL or query set and compare clicks, impressions, CTR, and position before vs after the change date.
 ```
 Search Console → Performance → Compare dates
@@ -517,6 +556,7 @@ Search Console → Performance → Compare dates
 ---
 
 **Q40: What is a Google Core Update and how should you respond to a traffic drop?**
+
 **A:** Core updates are broad algorithm changes assessing overall content quality. Respond by auditing E-E-A-T signals — author credentials, content depth, sourcing, UX — rather than looking for a specific technical fix.
 ```
 Post-core-update audit checklist:
@@ -533,6 +573,7 @@ Post-core-update audit checklist:
 ## Advanced
 
 **Q41: How do you implement server-side tagging with GTM to preserve measurement under ITP/ad blocking?**
+
 **A:** Deploy a GTM server container on a first-party subdomain. Route GA4 and ad pixel requests through it, allowing the server to set `HttpOnly` first-party cookies that bypass browser ITP restrictions.
 ```nginx
 # Route /gtm/ to your GTM server container
@@ -551,6 +592,7 @@ gtag('config', 'G-XXXXXXXX', {
 ---
 
 **Q42: How do you build a custom GA4 funnel report using BigQuery and Looker Studio?**
+
 **A:** Query the `events_*` table for sequential events per `user_pseudo_id`, use window functions to detect funnel step completion, then connect the result to Looker Studio.
 ```sql
 WITH funnel AS (
@@ -572,6 +614,7 @@ FROM funnel;
 ---
 
 **Q43: How do you implement dynamic Product Schema for WooCommerce using `wp_head`?**
+
 **A:** On single product pages, build a `Product` JSON-LD object from WooCommerce product data including `offers`, `aggregateRating`, and availability.
 ```php
 add_action('wp_head', function() {
@@ -600,6 +643,7 @@ add_action('wp_head', function() {
 ---
 
 **Q44: How do you build a first-party data strategy for WordPress using Consent Mode v2 and GA4?**
+
 **A:** Implement Consent Mode v2 defaults as `denied`, integrate your CMP to call `gtag('consent','update')` on accept, and use GA4 enhanced conversions to send hashed first-party data (email) server-side.
 ```javascript
 // On page load — default denied
@@ -623,6 +667,7 @@ gtag('set', 'user_data', {
 ---
 
 **Q45: How do you diagnose and fix a manual action penalty in Google Search Console?**
+
 **A:** Read the manual action notice, fix the issue (remove spammy links, thin content, cloaking), submit a reconsideration request with evidence of remediation via Search Console.
 ```
 Search Console → Security & Manual Actions → Manual Actions
@@ -638,6 +683,7 @@ Search Console → Security & Manual Actions → Manual Actions
 ---
 
 **Q46: How do you implement a programmatic internal linking strategy for large WordPress sites?**
+
 **A:** Use a custom `the_content` filter to detect target keywords and insert contextual links to pillar pages, drawing from a prebuilt keyword-to-URL mapping stored in options or a custom table.
 ```php
 add_filter('the_content', function($content) {
@@ -661,6 +707,7 @@ add_filter('the_content', function($content) {
 ---
 
 **Q47: How do you use GTM Custom JavaScript variables to compute derived dimensions?**
+
 **A:** Define a Custom JavaScript variable that reads from other GTM variables or the DOM and returns a computed value, which can then be passed as an event parameter.
 ```javascript
 // GTM Custom JavaScript Variable: "Cart Value Tier"
@@ -675,6 +722,7 @@ function() {
 ---
 
 **Q48: How do you automate Search Console rank tracking with the Google Search Console API?**
+
 **A:** Use the Search Analytics `query` method via OAuth2 to pull clicks, impressions, position, and CTR for a date range, grouped by query or page.
 ```python
 from googleapiclient.discovery import build
@@ -696,6 +744,7 @@ for row in response.get('rows', []):
 ---
 
 **Q49: How do you implement a structured data testing and CI pipeline for WordPress?**
+
 **A:** Validate JSON-LD output with Google's Rich Results Test API in a CI step. Scrape rendered page HTML in staging, extract `<script type="application/ld+json">` blocks, and assert required fields.
 ```bash
 #!/bin/bash
@@ -718,6 +767,7 @@ echo "$SCHEMA"
 ---
 
 **Q50: How do you architect a scalable tag management strategy for a WordPress network with 50+ sites?**
+
 **A:** Use one GTM container per brand with environment-specific variables (Lookup Table mapping hostname → GA4 Measurement ID). Share triggers and tags across environments using GTM environments and a shared `_ga` cross-domain linker config.
 ```javascript
 // GTM Lookup Table Variable: "GA4 Measurement ID"

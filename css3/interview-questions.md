@@ -9,6 +9,7 @@
 ## Basic
 
 **Q1: What is the CSS box model?**
+
 **A:** Every element is a rectangular box with content, padding, border, and margin layers. By default (`content-box`) `width` applies to the content area only; with `border-box` it includes padding and border, making sizing more predictable.
 ```css
 *, *::before, *::after {
@@ -22,6 +23,7 @@
 ```
 
 **Q2: What is the difference between `display: none` and `visibility: hidden`?**
+
 **A:** `display: none` removes the element from the layout flow entirely — it takes up no space. `visibility: hidden` hides the element visually but preserves its space in the layout.
 ```css
 .removed   { display: none; }       /* no layout space */
@@ -29,6 +31,7 @@
 ```
 
 **Q3: What is the difference between `position: absolute` and `position: fixed`?**
+
 **A:** `absolute` positions an element relative to its nearest positioned ancestor; it scrolls with the page. `fixed` positions it relative to the viewport; it stays put when the page scrolls.
 ```css
 .tooltip     { position: absolute; top: 100%; left: 0; }    /* relative to parent */
@@ -36,6 +39,7 @@
 ```
 
 **Q4: What is `position: sticky` and how does it work?**
+
 **A:** A sticky element acts like `relative` in normal flow until it crosses a threshold (e.g. `top: 0`), then it sticks like `fixed` within its scrolling container. The nearest scrolling ancestor must not have `overflow: hidden`.
 ```css
 .section-header {
@@ -47,6 +51,7 @@
 ```
 
 **Q5: How does z-index and stacking context work?**
+
 **A:** `z-index` only works on positioned or flex/grid children. A stacking context is a group whose children are painted together. Contexts are created by `position + z-index`, `opacity < 1`, `transform`, `will-change`, etc.
 ```css
 .modal-overlay { position: fixed; z-index: 100; }
@@ -57,6 +62,7 @@
 ```
 
 **Q6: What are the core Flexbox properties?**
+
 **A:** On the container: `display: flex`, `flex-direction`, `justify-content`, `align-items`, `flex-wrap`, `gap`. On children: `flex` (shorthand for `grow shrink basis`), `align-self`, `order`.
 ```css
 .container {
@@ -70,6 +76,7 @@
 ```
 
 **Q7: What is the difference between `justify-content` and `align-items` in Flexbox?**
+
 **A:** `justify-content` distributes items along the main axis (row direction for `flex-direction: row`). `align-items` aligns items along the cross axis (column direction for `flex-direction: row`).
 ```css
 .flex-center {
@@ -81,6 +88,7 @@
 ```
 
 **Q8: What are the essential CSS Grid container properties?**
+
 **A:** `display: grid`, `grid-template-columns`, `grid-template-rows`, `gap`, `grid-template-areas`, `justify-items`, and `align-items`. Children are placed with `grid-column`, `grid-row`, or `grid-area`.
 ```css
 .layout {
@@ -96,6 +104,7 @@
 ```
 
 **Q9: How do CSS custom properties (`--var`) work?**
+
 **A:** Custom properties (CSS variables) are defined with a `--name` syntax and accessed via `var(--name, fallback)`. They cascade and inherit like normal properties and can be updated via JavaScript or at-rules.
 ```css
 :root {
@@ -109,6 +118,7 @@
 ```
 
 **Q10: How is CSS specificity calculated?**
+
 **A:** Specificity is a four-part score (inline, ID, class/attr/pseudo-class, element/pseudo-element). A higher score wins regardless of source order. `!important` overrides all scores.
 ```css
 /* Specificity: 0-0-0-1 */  p { color: black; }
@@ -118,6 +128,7 @@
 ```
 
 **Q11: What is the difference between pseudo-classes and pseudo-elements?**
+
 **A:** Pseudo-classes (`:hover`, `:focus`, `:nth-child`) select elements in a specific state. Pseudo-elements (`::before`, `::after`, `::first-line`) style a specific part of an element's content.
 ```css
 a:hover         { color: blue; }          /* state-based */
@@ -126,6 +137,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q12: How do CSS transitions work?**
+
 **A:** `transition` animates a property change over a duration when triggered by a state change (e.g. `:hover`). Specify property, duration, timing function, and optional delay.
 ```css
 .btn {
@@ -139,6 +151,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q13: How do `@keyframes` animations work?**
+
 **A:** `@keyframes` defines an animation sequence with named waypoints (percentages or `from`/`to`). Apply with `animation` shorthand specifying name, duration, timing, iteration, and fill mode.
 ```css
 @keyframes fadeInUp {
@@ -151,6 +164,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q14: How do CSS `transform` functions work?**
+
 **A:** `transform` applies 2D/3D geometric operations without affecting layout. Common functions: `translate(x, y)`, `scale(n)`, `rotate(deg)`, `skew(x, y)`. Combine multiple transforms in a single `transform` property.
 ```css
 .card:hover {
@@ -160,6 +174,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q15: How do media queries enable responsive design?**
+
 **A:** Media queries apply CSS rules only when conditions match (viewport width, orientation, resolution). Use `min-width` for mobile-first, `max-width` for desktop-first breakpoints.
 ```css
 /* Mobile-first base */
@@ -173,6 +188,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q16: What is the `gap` property in Flexbox and Grid?**
+
 **A:** `gap` (previously `grid-gap`) sets the gutter between flex items or grid cells. It only creates space between items, not on the outer edges. Use `row-gap` or `column-gap` for independent control.
 ```css
 .grid {
@@ -184,6 +200,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q17: What is the `aspect-ratio` property?**
+
 **A:** `aspect-ratio` maintains a width-to-height ratio as the element resizes, replacing the classic padding-hack for responsive embeds. Set one dimension to `auto` to let the ratio drive it.
 ```css
 .video-embed {
@@ -198,6 +215,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q18: What are CSS logical properties?**
+
 **A:** Logical properties use start/end/inline/block axes instead of physical left/right/top/bottom, making layouts automatically adapt to right-to-left scripts and vertical writing modes.
 ```css
 .card {
@@ -209,6 +227,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q19: What is BEM methodology?**
+
 **A:** BEM (Block__Element--Modifier) is a CSS naming convention that creates self-documenting, collision-free class names. Blocks are standalone components, Elements are children, Modifiers are variants.
 ```css
 /* Block */       .card { }
@@ -219,6 +238,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q20: What is the `will-change` property and when should you use it?**
+
 **A:** `will-change` hints to the browser to promote an element to its own compositor layer before an animation starts, avoiding a janky first frame. Use sparingly — overuse wastes GPU memory.
 ```css
 .drawer {
@@ -234,6 +254,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ## Mid
 
 **Q21: What is the difference between Flexbox and CSS Grid?**
+
 **A:** Flexbox is one-dimensional — it lays items out in a single row or column and lets content size drive the layout. Grid is two-dimensional — you define explicit tracks for both axes, making it ideal for full-page layouts.
 ```css
 /* Flexbox: nav items in a row */
@@ -244,6 +265,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q22: How does `grid-template-areas` work?**
+
 **A:** It assigns string names to grid regions; children reference a name with `grid-area`. The ASCII-art syntax makes the layout visually obvious in source code.
 ```css
 .layout {
@@ -258,6 +280,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q23: What is the `fr` unit in CSS Grid?**
+
 **A:** `fr` is a fractional unit representing a share of available space after fixed and auto tracks are resolved. `1fr` takes one share; `2fr` takes two shares of the remaining space.
 ```css
 .grid {
@@ -269,6 +292,7 @@ p::first-line   { font-weight: bold; }    /* part of content */
 ```
 
 **Q24: How does `clamp()` enable fluid typography?**
+
 **A:** `clamp(min, preferred, max)` returns the preferred value clamped between min and max. Using `vw` as the preferred value creates type that scales with the viewport within safe bounds.
 ```css
 :root {
@@ -280,6 +304,7 @@ p  { font-size: var(--font-size-body); }
 ```
 
 **Q25: What are container queries (`@container`) and how do they differ from media queries?**
+
 **A:** Container queries apply styles based on the size of a parent container rather than the viewport. They enable truly component-scoped responsiveness when the same component appears in different layout contexts.
 ```css
 .card-wrapper { container-type: inline-size; container-name: card; }
@@ -291,6 +316,7 @@ p  { font-size: var(--font-size-body); }
 ```
 
 **Q26: What are `@layer` cascade layers and why are they useful?**
+
 **A:** `@layer` lets you explicitly define the cascade order of style groups, making it easy to manage specificity conflicts between resets, third-party styles, and custom code without resorting to `!important`.
 ```css
 @layer reset, base, components, utilities;
@@ -302,6 +328,7 @@ p  { font-size: var(--font-size-body); }
 ```
 
 **Q27: How does the `:has()` selector work?**
+
 **A:** `:has()` is a relational pseudo-class that selects a parent based on whether it contains a matching child — effectively a "parent selector". It enables powerful context-dependent styling without JavaScript.
 ```css
 /* Card that contains an image gets a different layout */
@@ -312,6 +339,7 @@ label:has(+ input:required)::after { content: ' *'; color: red; }
 ```
 
 **Q28: What are GPU-composited properties and why do they matter for performance?**
+
 **A:** `transform` and `opacity` are composited by the GPU without triggering layout or paint — they produce the smoothest animations. Avoid animating `width`, `height`, `margin`, `top`/`left` as they trigger expensive reflows.
 ```css
 /* BAD: triggers layout reflow on every frame */
@@ -323,6 +351,7 @@ label:has(+ input:required)::after { content: ' *'; color: red; }
 ```
 
 **Q29: How does the `contain` property improve rendering performance?**
+
 **A:** `contain` tells the browser that an element's subtree is independent, allowing it to skip layout, paint, or style recalculation of the containing element when only its children change.
 ```css
 .feed-item {
@@ -334,6 +363,7 @@ label:has(+ input:required)::after { content: ' *'; color: red; }
 ```
 
 **Q30: What are CSS `scroll-snap` properties and how do you use them?**
+
 **A:** `scroll-snap-type` on the container defines the snap axis and strictness. `scroll-snap-align` on children defines their snap point. Together they create smooth, predictable scroll carousels without JavaScript.
 ```css
 .carousel {
@@ -349,6 +379,7 @@ label:has(+ input:required)::after { content: ' *'; color: red; }
 ```
 
 **Q31: What is `overscroll-behavior` and when would you use it?**
+
 **A:** `overscroll-behavior` controls what happens when scrolling reaches the edge of a container. Set `contain` to prevent the page from scrolling when a modal or sidebar scroll area reaches its boundary.
 ```css
 .modal-body {
@@ -359,6 +390,7 @@ label:has(+ input:required)::after { content: ' *'; color: red; }
 ```
 
 **Q32: What is CSS Houdini and what APIs does it expose?**
+
 **A:** Houdini is a set of low-level CSS APIs that let JavaScript plug into the browser's rendering pipeline. Key APIs: Paint Worklet (custom `background`/`border` rendering), Layout Worklet, Typed OM, and Properties & Values API.
 ```js
 // Register a typed custom property (Properties & Values API)
@@ -372,6 +404,7 @@ CSS.registerProperty({
 ```
 
 **Q33: How do you create a custom scrollbar with CSS?**
+
 **A:** Use `::-webkit-scrollbar`, `::-webkit-scrollbar-track`, and `::-webkit-scrollbar-thumb` for Chrome/Safari. Use `scrollbar-width` and `scrollbar-color` for Firefox (the standard approach).
 ```css
 /* Standard (Firefox) */
@@ -384,6 +417,7 @@ CSS.registerProperty({
 ```
 
 **Q34: What are print styles and how do you write them?**
+
 **A:** Print styles in a `@media print` block or a `<link media="print">` stylesheet hide navigation, adjust colors, ensure links show their URLs, and force page breaks at logical points.
 ```css
 @media print {
@@ -396,6 +430,7 @@ CSS.registerProperty({
 ```
 
 **Q35: How do `color-mix()` and `oklch()` improve color management?**
+
 **A:** `oklch()` uses a perceptually uniform color space so equal lightness changes look equal visually — ideal for generating color scales. `color-mix()` blends two colors in any color space without JavaScript.
 ```css
 :root {
@@ -408,6 +443,7 @@ CSS.registerProperty({
 ```
 
 **Q36: What is CSS subgrid and when do you use it?**
+
 **A:** `subgrid` lets a grid item adopt its parent's track definitions for its own children, enabling columns/rows to align across nested elements without duplicating track definitions.
 ```css
 .parent {
@@ -423,6 +459,7 @@ CSS.registerProperty({
 ```
 
 **Q37: How do CSS Modules work conceptually?**
+
 **A:** CSS Modules scope class names locally by default: the build tool generates unique hashed names, preventing collisions. You import the class map in JavaScript and reference names as object properties.
 ```css
 /* Button.module.css */
@@ -435,6 +472,7 @@ element.className = styles['button--primary']; // becomes e.g. "button--primary_
 ```
 
 **Q38: How do you implement dark mode with CSS custom properties?**
+
 **A:** Define colour tokens in `:root`, then override them inside a `prefers-color-scheme: dark` media query or a `[data-theme="dark"]` attribute. Components reference the tokens and update automatically.
 ```css
 :root { --bg: #fff; --text: #111; --surface: #f5f5f5; }
@@ -446,6 +484,7 @@ body { background: var(--bg); color: var(--text); }
 ```
 
 **Q39: What is the cascade and how does it determine which rule wins?**
+
 **A:** The cascade resolves conflicts in this order: origin + importance (user-agent → user → author, `!important` reverses) → specificity → source order. `@layer` adds a pre-specificity ordering step.
 ```css
 /* Source order: last rule wins for equal specificity */
@@ -458,6 +497,7 @@ body { background: var(--bg); color: var(--text); }
 ```
 
 **Q40: How do CSS logical properties help with RTL internationalization?**
+
 **A:** Replacing physical properties (`left`, `right`, `margin-left`) with logical equivalents (`inline-start`, `inline-end`, `margin-inline-start`) means the layout flips automatically for RTL languages without extra CSS.
 ```css
 .breadcrumb-separator::after {
@@ -475,6 +515,7 @@ body { background: var(--bg); color: var(--text); }
 ## Advanced
 
 **Q41: How do you build a fully responsive layout using CSS Grid `minmax()` and `auto-fill`?**
+
 **A:** Combine `repeat(auto-fill, minmax(min, 1fr))` to create a grid that automatically adds or removes columns based on available space without any media queries — a truly intrinsic layout.
 ```css
 .auto-grid {
@@ -486,6 +527,7 @@ body { background: var(--bg); color: var(--text); }
 ```
 
 **Q42: How do you animate with `@keyframes` using the `animation-timeline` and scroll-driven animations?**
+
 **A:** CSS Scroll-Driven Animations (Chrome 115+) link an animation's progress to scroll position via `animation-timeline: scroll()` or `view()`, enabling parallax and reveal effects with zero JavaScript.
 ```css
 @keyframes reveal {
@@ -500,6 +542,7 @@ body { background: var(--bg); color: var(--text); }
 ```
 
 **Q43: How do you implement a performant sticky sidebar with CSS only?**
+
 **A:** Use `position: sticky` on the sidebar with `top` offset and `align-self: start` on the grid child so it sticks to the top of its column without overflowing the parent grid row.
 ```css
 .layout {
@@ -517,6 +560,7 @@ body { background: var(--bg); color: var(--text); }
 ```
 
 **Q44: How do you use the CSS Paint API (Houdini) to create a custom border effect?**
+
 **A:** Register a Paint Worklet that draws to a canvas-like context; use it as a `background` or `border-image`. This moves the rendering to the GPU thread and keeps the effect fully CSS-driven.
 ```js
 // paint-worklet.js
@@ -533,6 +577,7 @@ registerPaint('dotted-border', class {
 ```
 
 **Q45: How do you handle CSS specificity conflicts in a large design system using `@layer`?**
+
 **A:** Declare layers in ascending priority order at the top of your stylesheet. Lower-layer styles never override higher-layer styles regardless of specificity, making `!important` unnecessary in component code.
 ```css
 @layer tokens, reset, base, components, patterns, utilities;
@@ -544,6 +589,7 @@ registerPaint('dotted-border', class {
 ```
 
 **Q46: How do you create a fluid type scale using `clamp()` and CSS custom properties?**
+
 **A:** Define a scale of custom properties using `clamp()` with viewport units for the preferred value. Each step grows proportionally, giving harmonious type that is responsive across all viewport sizes.
 ```css
 :root {
@@ -557,6 +603,7 @@ h2 { font-size: var(--step-2); }
 ```
 
 **Q47: How do you implement CSS-only dark/light mode with a toggle?**
+
 **A:** Store the preference in a `data-theme` attribute on `<html>` and override custom property tokens inside `[data-theme="dark"]`. Toggle the attribute via JavaScript; CSS handles all visual changes.
 ```css
 :root        { --bg: #fff; --text: #111; }
@@ -571,6 +618,7 @@ document.getElementById('toggle').addEventListener('click', () => {
 ```
 
 **Q48: How does the `content-visibility: auto` property improve rendering performance?**
+
 **A:** `content-visibility: auto` skips rendering (layout + paint) of off-screen sections entirely. The browser still reserves space via `contain-intrinsic-size` to prevent scrollbar jumps, dramatically reducing initial page render time.
 ```css
 .article-section {
@@ -580,6 +628,7 @@ document.getElementById('toggle').addEventListener('click', () => {
 ```
 
 **Q49: How do you use CSS Grid for a masonry-like layout today?**
+
 **A:** True CSS masonry is behind a flag (`masonry` value for `grid-template-rows`). As a fallback, use CSS columns or a JavaScript approach. For native, use `grid-template-rows: masonry` where supported.
 ```css
 /* Native masonry (Chrome Origin Trial / Firefox flag) */
@@ -596,6 +645,7 @@ document.getElementById('toggle').addEventListener('click', () => {
 ```
 
 **Q50: How do you use `@property` to animate CSS custom properties?**
+
 **A:** By default custom properties cannot be transitioned because the browser treats them as opaque strings. `@property` registers a typed property with a syntax, enabling the browser to interpolate its value during transitions.
 ```css
 @property --progress {

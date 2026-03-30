@@ -1,5 +1,41 @@
 # WordPress — Core Concepts
 
+```mermaid
+flowchart TD
+    A([Browser Request]) --> B[DNS Resolution]
+    B --> C[Server / Host]
+    C --> D[Nginx / Apache]
+
+    D -->|Static file exists| E[Serve Static Asset\n.css / .js / image]
+    D -->|PHP needed| F[PHP-FPM FastCGI]
+
+    F --> G[index.php]
+    G --> H[wp-load.php]
+    H --> I[wp-config.php\nDB credentials + constants]
+    I --> J[wp-settings.php\nDefine WP constants, load core]
+
+    J --> K[Load Must-Use Plugins\nwp-content/mu-plugins/]
+    K --> L[Load Active Plugins\ndo_action: plugins_loaded]
+    L --> M[Load Active Theme\nfunctions.php]
+    M --> N[Parse Request\nWP::main → WP_Query]
+
+    N -->|is_page / is_single / etc.| O[Template Hierarchy\nget_template_part]
+    O --> P{Template Resolver}
+    P -->|Custom template found| Q[page-slug.php\nor custom template]
+    P -->|Fallback| R[index.php]
+
+    Q --> S[The Loop\nhave_posts / the_post]
+    R --> S
+    S --> T[Template Tags\nthe_title / the_content]
+    T --> U[wp_footer hooks\nscripts / styles enqueued]
+    U --> V([HTML Response to Browser])
+
+    style A fill:#4a90d9,color:#fff
+    style V fill:#27ae60,color:#fff
+    style I fill:#e74c3c,color:#fff
+    style S fill:#f39c12,color:#fff
+```
+
 ## 1. The WordPress Loop
 
 The Loop is the core mechanism WordPress uses to display posts. It queries the database, iterates over results, and renders each post using template tags.

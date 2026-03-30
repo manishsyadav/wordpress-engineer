@@ -1,150 +1,149 @@
 # SCSS / SASS — Interview Questions
 
 > **50 questions** · Basic (20) · Mid (20) · Advanced (10)
-> Each answer includes a concise code example inline.
+>
+> Each answer is 2–3 lines with an inline code snippet.
 
 ---
 
-## Basic
+## Basic (Q1–Q20)
+
+---
 
 **Q1: What is the difference between SCSS and SASS syntax?**
-**A:** SCSS uses curly braces and semicolons — any valid CSS is valid SCSS. SASS uses indentation-based syntax with no braces/semicolons. SCSS is more widely adopted as it's easier to adopt from existing CSS.
+
+**A:** SCSS uses CSS-compatible syntax with curly braces and semicolons — any valid CSS file is valid SCSS. SASS uses indentation-based syntax with no braces or semicolons, more concise but less familiar to CSS developers. SCSS is overwhelmingly preferred in WordPress development because it requires no relearning of CSS syntax.
 ```scss
-// SCSS
+// SCSS syntax (curly braces + semicolons — CSS-compatible)
 .card { color: red; &:hover { color: blue; } }
 
-// SASS
+// SASS syntax (indented — no braces or semicolons)
 .card
   color: red
   &:hover
     color: blue
 ```
 
-**Q2: How do you define and use variables in SCSS?**
-**A:** Variables are prefixed with `$`. They're resolved at compile time — the output CSS has static values, not variable references.
-```scss
-$color-primary: #0d7377;
-$font-size-base: 1rem;
-$spacing: 1rem;
+---
 
-.btn { background: $color-primary; font-size: $font-size-base; padding: $spacing; }
+**Q2: How do you declare and use variables in SCSS?**
+
+**A:** Variables are prefixed with `$` and can hold colors, sizes, font stacks, or any CSS value. They are resolved at compile time and become static values in the output CSS — they cannot change after compilation. Use them to centralise design tokens such as brand colors and spacing scales across a project.
+```scss
+$primary-color: #0d7377;
+$font-size-base: 1rem;
+$border-radius:  4px;
+
+.button {
+  background:    $primary-color;
+  font-size:     $font-size-base;
+  border-radius: $border-radius;
+}
 ```
 
-**Q3: How does nesting work in SCSS?**
-**A:** Write child selectors inside parent selectors. Use `&` to reference the parent selector for pseudo-classes, modifiers, and state classes. Avoid nesting deeper than 3 levels.
+---
+
+**Q3: How does selector nesting work in SCSS?**
+
+**A:** Child selectors written inside a parent block compile to descendant CSS selectors. Nesting reduces repetition but should be kept to 3 levels or fewer to prevent specificity creep. The compiled output chains selectors just as if written by hand in plain CSS.
 ```scss
 .nav {
   display: flex;
-  &__item { padding: 0.5rem; }          // .nav__item
-  &--dark { background: #1a1a2e; }       // .nav--dark
-  &:hover { opacity: 0.9; }              // .nav:hover
-  a { color: inherit; text-decoration: none; } // .nav a
+
+  .nav__item { padding: 0.5rem 1rem; }
+  .nav__link { color: inherit; text-decoration: none; }
+}
+// Compiles to: .nav { } .nav .nav__item { } .nav .nav__link { }
+```
+
+---
+
+**Q4: What is the `&` parent selector and when do you use it?**
+
+**A:** `&` refers to the parent selector inside a nested block and compiles with no space between the parent and the suffix. Use it for pseudo-classes, pseudo-elements, BEM modifiers, and state classes. It eliminates repetition while keeping all related rules co-located in one block.
+```scss
+.btn {
+  background: blue;
+
+  &:hover    { background: darkblue; }
+  &::after   { content: ''; display: block; }
+  &--primary { background: green; }
+  &.is-active { font-weight: bold; }
 }
 ```
 
-**Q4: What are SCSS partials and how do you use them?**
-**A:** Files prefixed with `_` (e.g., `_variables.scss`) are partials — not compiled to standalone CSS. Imported via `@use` or `@forward`. They split code into logical modules.
-```
-src/scss/
-├── _variables.scss
-├── _mixins.scss
-├── _buttons.scss
-└── style.scss       ← main file: @use 'variables'; @use 'mixins'; @use 'buttons';
-```
+---
 
-**Q5: What is the difference between `@use` and `@import`?**
-**A:** `@use` creates a namespace — variables/mixins accessed as `file.$var`. Each file loaded once. `@import` (deprecated) pollutes the global namespace and loads files multiple times, causing duplication.
+**Q5: What are SCSS partials and what naming convention do they follow?**
+
+**A:** Partials are files prefixed with an underscore (`_variables.scss`). The underscore tells the Sass compiler not to output them as standalone CSS files. They are loaded via `@use` or `@forward` from a main entry point, allowing large stylesheets to be split into focused, maintainable modules.
 ```scss
-// @use — namespaced
-@use 'variables' as vars;
-.btn { color: vars.$color-primary; }
+// _variables.scss  ← partial, never compiled alone
+$color-primary: #0d7377;
 
-// @import — deprecated (global namespace)
-@import 'variables';
-.btn { color: $color-primary; }
+// main.scss  ← entry point that pulls in partials
+@use 'variables';
+@use 'components/buttons';
+@use 'layout/header';
 ```
 
-**Q6: How do you write a basic mixin?**
-**A:** Mixins are reusable CSS blocks defined with `@mixin` and included with `@include`. They can accept parameters with optional default values.
+---
+
+**Q6: How do you write and include a basic `@mixin`?**
+
+**A:** A mixin is a reusable block of CSS declared with `@mixin` and invoked with `@include`. Mixins inline their declarations at every call site, so they work inside `@media` blocks. Use them for multi-property patterns such as flex centering or clearfix that are reused across many components.
 ```scss
-@mixin flex-center($direction: row) {
+@mixin flex-center {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: $direction;
 }
 
-.hero    { @include flex-center; }
-.sidebar { @include flex-center(column); }
+.hero    { @include flex-center; height: 100vh; }
+.overlay { @include flex-center; position: absolute; inset: 0; }
 ```
 
-**Q7: What is string interpolation in SCSS?**
-**A:** `#{}` injects a variable's value into a selector, property name, or string. Required when using variables in places where SCSS can't evaluate them directly.
+---
+
+**Q7: How do mixin arguments and default values work?**
+
+**A:** Mixins accept positional or keyword arguments; default values make arguments optional. Callers can supply keyword arguments in any order, which improves readability when a mixin has several parameters. Omitting an argument falls back to its declared default value automatically.
 ```scss
-$side: 'left';
-$theme: 'dark';
-
-.border-#{$side}    { border-left: 2px solid; }
-[data-theme="#{$theme}"] { background: #1a1a2e; }
-
-@each $size in sm, md, lg {
-  .text-#{$size} { font-size: map-get($sizes, $size); }
+@mixin button($bg: #0d7377, $color: #fff, $radius: 4px) {
+  background:    $bg;
+  color:         $color;
+  border-radius: $radius;
+  padding: 0.5rem 1rem;
 }
+
+.btn-primary { @include button(); }
+.btn-danger  { @include button($bg: #e53e3e); }
+.btn-pill    { @include button($bg: green, $radius: 999px); }
 ```
 
-**Q8: What is the SCSS `@extend` directive?**
-**A:** `@extend` shares CSS rules between selectors — the output groups selectors instead of duplicating declarations. Use `%placeholder` selectors to avoid extending concrete classes.
+---
+
+**Q8: What is `@content` inside a mixin?**
+
+**A:** `@content` is a placeholder for a block of styles passed by the caller at the `@include` site. It lets mixins wrap arbitrary content — most commonly used to build `@media` query wrapper mixins. The caller supplies the block between `{` `}` after the `@include` statement.
 ```scss
-%btn-base {
-  display: inline-flex; padding: 0.5rem 1rem;
-  border-radius: 4px; cursor: pointer;
+@mixin respond-to($bp) {
+  @media (min-width: $bp) {
+    @content;
+  }
 }
 
-.btn-primary { @extend %btn-base; background: #0d7377; color: #fff; }
-.btn-outline  { @extend %btn-base; border: 2px solid #0d7377; }
-// Output: .btn-primary, .btn-outline { display: inline-flex; ... }
-```
-
-**Q9: How does `@each` work in SCSS?**
-**A:** Iterates over a list or map to generate repeated CSS. Great for utilities, color variants, and spacing scales.
-```scss
-$colors: (primary: #0d7377, danger: #e53e3e, success: #38a169);
-
-@each $name, $value in $colors {
-  .text-#{$name}   { color: $value; }
-  .bg-#{$name}     { background-color: $value; }
-  .border-#{$name} { border-color: $value; }
-}
-```
-
-**Q10: How does `@for` work in SCSS?**
-**A:** Loops a numeric range. `through` includes the end value; `to` excludes it. Used for generating grid columns, spacing utilities, and z-index scales.
-```scss
-@for $i from 1 through 12 {
-  .col-#{$i} { width: percentage($i / 12); }
-}
-
-@for $i from 1 through 5 {
-  .mt-#{$i} { margin-top: #{$i * 0.25}rem; }
-}
-```
-
-**Q11: What is a SCSS map and how do you access values?**
-**A:** Maps are key-value data structures. Access with `map.get($map, key)` or the legacy `map-get($map, key)`. Iterate with `@each`.
-```scss
-@use 'sass:map';
-
-$breakpoints: (sm: 576px, md: 768px, lg: 1024px, xl: 1280px);
-
-.container {
+.sidebar {
   width: 100%;
-  @media (min-width: map.get($breakpoints, md)) { max-width: 768px; }
-  @media (min-width: map.get($breakpoints, lg)) { max-width: 1024px; }
+  @include respond-to(768px) { width: 33%; }
 }
 ```
 
-**Q12: How do you define a SCSS function?**
-**A:** Functions return computed values using `@function` and `@return`. Used for calculations, color manipulation, and unit conversions.
+---
+
+**Q9: How do you write a `@function` in SCSS?**
+
+**A:** Functions are declared with `@function` and must return a value via `@return`. Unlike mixins they emit a single computed value rather than CSS declarations. Use functions for unit conversions, calculations, and map lookups — never for emitting CSS rules.
 ```scss
 @use 'sass:math';
 
@@ -152,683 +151,732 @@ $breakpoints: (sm: 576px, md: 768px, lg: 1024px, xl: 1280px);
   @return math.div($px, $base) * 1rem;
 }
 
-@function z($layer) {
-  $layers: (base: 1, dropdown: 100, modal: 200, toast: 300);
-  @return map-get($layers, $layer);
-}
-
-.modal { font-size: rem(14); z-index: z(modal); }
+.heading { font-size: rem(24); }  // 1.5rem
+.caption { font-size: rem(12); }  // 0.75rem
 ```
 
-**Q13: What is the `@if` / `@else` directive?**
-**A:** Conditional logic in SCSS — controls which CSS is output based on variable values. Useful inside mixins to handle variants.
+---
+
+**Q10: What is `@extend` and what are `%placeholder` selectors?**
+
+**A:** `@extend` shares a set of CSS rules between selectors by grouping them in the compiled output rather than duplicating declarations. `%placeholder` selectors (prefixed `%`) exist solely to be extended and never appear in compiled CSS on their own. Always extend placeholders, not concrete class selectors.
 ```scss
-@mixin theme-bg($theme) {
-  @if $theme == 'dark' {
-    background: #1a1a2e; color: #e2e8f0;
-  } @else if $theme == 'light' {
-    background: #ffffff; color: #2d3748;
+%visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.sr-only   { @extend %visually-hidden; }
+.skip-link { @extend %visually-hidden; }
+// Output: .sr-only, .skip-link { position: absolute; ... }
+```
+
+---
+
+**Q11: How does `@if / @else if / @else` work in SCSS?**
+
+**A:** SCSS control directives run at compile time. `@if` evaluates a SassScript expression and outputs its block when the result is truthy. `@else if` and `@else` provide fallback branches. They are most useful inside mixins and functions to adjust output based on arguments passed by the caller.
+```scss
+@mixin theme-colors($mode) {
+  @if $mode == 'light' {
+    background: #fff; color: #111;
+  } @else if $mode == 'dark' {
+    background: #1a202c; color: #f7fafc;
   } @else {
-    @warn "Unknown theme: #{$theme}";
+    @warn 'Unknown theme mode: #{$mode}';
   }
 }
-
-body.dark  { @include theme-bg('dark'); }
-body.light { @include theme-bg('light'); }
 ```
 
-**Q14: What are SCSS color functions?**
-**A:** Built-in functions to manipulate colors: `darken/lighten` (adjust lightness), `mix` (blend two colors), `rgba` (add transparency), `adjust-color` (adjust any channel precisely).
+---
+
+**Q12: How does `@each` iterate over lists and maps?**
+
+**A:** `@each $item in $list` iterates over a space- or comma-separated list. For maps, destructure both key and value as `@each $key, $value in $map`. It is the primary tool for generating utility classes, theme variants, or component modifiers programmatically from a single data source.
+```scss
+// List iteration
+@each $side in top, right, bottom, left {
+  .border-#{$side} { border-#{$side}: 1px solid #eee; }
+}
+
+// Map iteration
+$sizes: (sm: 0.5rem, md: 1rem, lg: 2rem);
+@each $name, $val in $sizes { .gap-#{$name} { gap: $val; } }
+```
+
+---
+
+**Q13: What is the difference between `@for from/through` and `@for from/to`?**
+
+**A:** `@for $i from 1 through 5` includes both endpoints and runs 5 times (1, 2, 3, 4, 5). `@for $i from 1 to 5` excludes the end value and runs 4 times (1, 2, 3, 4). Use `through` when the last index must be included; use `to` when it should be excluded.
+```scss
+// through — inclusive end: generates .col-1 through .col-12
+@for $i from 1 through 12 {
+  .col-#{$i} { width: percentage($i / 12); }
+}
+
+// to — exclusive end: generates .offset-1 through .offset-11
+@for $i from 1 to 12 {
+  .offset-#{$i} { margin-left: percentage($i / 12); }
+}
+```
+
+---
+
+**Q14: How does `@while` work in SCSS?**
+
+**A:** `@while` repeatedly executes its block as long as the condition is truthy. The loop variable must be updated inside the block to prevent infinite compilation. It is rarely needed in practice — `@for` and `@each` handle most iteration needs more expressively.
+```scss
+$i: 1;
+@while $i <= 6 {
+  .fw-#{$i * 100} { font-weight: $i * 100; }
+  $i: $i + 1;
+}
+// Outputs: .fw-100 { font-weight: 100; } through .fw-600 { font-weight: 600; }
+```
+
+---
+
+**Q15: How do you use SCSS maps and `map.get`?**
+
+**A:** Maps are key-value collections declared with `()`. Use `map.get($map, $key)` after `@use 'sass:map'` to retrieve a value by key. They centralise configuration data — breakpoints, colors, spacing scales — that loops and functions can consume without hardcoding values in multiple places.
+```scss
+@use 'sass:map';
+
+$breakpoints: (sm: 576px, md: 768px, lg: 1024px, xl: 1280px);
+
+.container {
+  max-width: map.get($breakpoints, lg); // 1024px
+}
+```
+
+---
+
+**Q16: What are the main SCSS color functions?**
+
+**A:** The `sass:color` module provides `color.adjust()` to shift individual color channels (lightness, saturation, hue) and `color.mix()` to blend two colors by a percentage weight. The legacy global functions `lighten()` and `darken()` are deprecated in Dart Sass — prefer the module equivalents in all new code.
 ```scss
 @use 'sass:color';
 
-$primary: #0d7377;
+$brand: #0d7377;
 
 .btn {
-  background: $primary;
-  &:hover  { background: color.adjust($primary, $lightness: -10%); }
-  &:active { background: color.mix($primary, black, 80%); }
-  &.ghost  { color: $primary; background: rgba($primary, 0.1); }
+  background: $brand;
+  &:hover  { background: color.adjust($brand, $lightness:  10%); }
+  &:active { background: color.adjust($brand, $lightness: -10%); }
 }
+$muted: color.mix($brand, #fff, 40%); // 60% white blended in
 ```
 
-**Q15: What does `@forward` do?**
-**A:** Re-exports members (variables, mixins, functions) from a partial so consuming files get everything through a single entry point. Works with `@use`.
+---
+
+**Q17: What is string interpolation `#{}` used for in SCSS?**
+
+**A:** Interpolation evaluates a Sass expression and embeds its string value into a selector, property name, or string context. It is required in selectors and property names because Sass cannot resolve variables in those positions directly. Inside CSS property values, plain variable references are usually sufficient without interpolation.
 ```scss
-// _index.scss (barrel file)
-@forward 'variables';
-@forward 'mixins';
-@forward 'functions';
+$prop:  'margin';
+$side:  'top';
+$theme: 'dark';
 
-// In another file — get everything at once
-@use 'abstracts' as *;
-.btn { background: $color-primary; @include flex-center; }
+.theme-#{$theme} {
+  #{$prop}-#{$side}: 1rem;          // margin-top: 1rem
+  background: var(--bg-#{$theme});  // var(--bg-dark)
+}
 ```
 
-**Q16: What is the 7-1 SCSS architecture pattern?**
-**A:** 7 folders + 1 main file. Organises SCSS into: `abstracts/` (variables/mixins/functions), `base/` (reset/typography), `layout/` (grid/header/footer), `components/` (buttons/cards), `pages/` (page-specific), `themes/` (dark/light), `vendors/` (third-party). `main.scss` imports all.
-```
-scss/
-├── abstracts/ (_variables, _mixins, _functions)
-├── base/      (_reset, _typography, _base)
-├── layout/    (_grid, _header, _footer, _sidebar)
-├── components/(_buttons, _cards, _forms, _nav)
-├── pages/     (_home, _contact, _blog)
-├── themes/    (_dark, _light)
-├── vendors/   (_normalize)
-└── main.scss  ← @use all partials
-```
+---
 
-**Q17: How do you generate CSS custom properties from a SCSS map?**
-**A:** Use `@each` inside `:root` to output CSS variables from a map. Gives you SCSS-authored values available at runtime.
+**Q18: What is the `@import` deprecation and what replaces it?**
+
+**A:** `@import` is deprecated in Dart Sass because it pollutes the global namespace, allows the same file to be parsed multiple times, and makes dependency graphs opaque. `@use` (loads with a namespace, parsed once) and `@forward` (re-exports for composition) are its direct replacements in modern SCSS.
 ```scss
-$tokens: (
-  color-primary:   #0d7377,
-  color-secondary: #1e3a5f,
-  space-1: 0.25rem,
-  space-2: 0.5rem,
-  space-4: 1rem,
-);
+// Deprecated — avoid in all new code
+@import 'variables';
+@import 'mixins';
 
-:root {
-  @each $name, $value in $tokens {
-    --#{$name}: #{$value};
-  }
-}
-// Output: --color-primary: #0d7377; --space-1: 0.25rem; etc.
+// Modern replacements
+@use 'abstracts/variables' as v;
+@use 'abstracts/mixins'   as mx;
+
+.card { color: v.$primary; @include mx.flex-center; }
 ```
 
-**Q18: How do you set up SCSS compilation with npm?**
-**A:** Install the `sass` package and add scripts to `package.json`. For WordPress themes, compile to `style.css` in the theme root.
-```json
-{
-  "devDependencies": { "sass": "^1.70.0" },
-  "scripts": {
-    "sass":       "sass src/scss/style.scss style.css --style=expanded --source-map",
-    "sass:watch": "sass src/scss/style.scss style.css --watch --no-source-map",
-    "sass:build": "sass src/scss/style.scss style.min.css --style=compressed"
-  }
-}
-```
+---
 
-**Q19: What is a responsive mixin pattern in SCSS?**
-**A:** Define breakpoints in a map and a mixin that generates `@media` queries. Mobile-first: use `min-width`. Consistent breakpoints across the codebase.
-```scss
-$breakpoints: (sm: 576px, md: 768px, lg: 1024px, xl: 1280px);
+**Q19: How does `@warn` differ from `@error` in SCSS?**
 
-@mixin respond($bp) {
-  @media (min-width: map-get($breakpoints, $bp)) { @content; }
-}
-
-.card {
-  width: 100%;
-  @include respond(md) { width: 50%; }
-  @include respond(lg) { width: 33.333%; }
-}
-```
-
-**Q20: What is SCSS `@warn` and `@error`?**
-**A:** `@warn` outputs a warning during compilation without stopping it. `@error` stops compilation with an error message. Use them for defensive mixin/function validation.
+**A:** `@warn` prints a message to the terminal during compilation but allows the build to continue — appropriate for deprecation notices or soft validation where a fallback is possible. `@error` halts compilation immediately with a message — use it for invalid arguments or states that would produce broken CSS output.
 ```scss
 @function get-color($name) {
-  @if not map-has-key($colors, $name) {
-    @error "Color '#{$name}' not found in $colors map.";
+  @if not map-has-key($palette, $name) {
+    @error "Color '#{$name}' not found in $palette map.";
   }
-  @return map-get($colors, $name);
+  @return map-get($palette, $name);
 }
 
-@mixin deprecated($replacement) {
-  @warn "This mixin is deprecated. Use #{$replacement} instead.";
+@mixin legacy-mixin($args...) {
+  @warn "legacy-mixin is deprecated. Use flex-center instead.";
   @content;
 }
 ```
 
 ---
 
-## Mid
+**Q20: What is the difference between a SCSS variable `$var` and a CSS custom property `--var`?**
 
-**Q21: What is the difference between `@mixin` and `%placeholder` + `@extend`?**
-**A:** Mixins duplicate CSS at each `@include` point (works inside `@media`). `%placeholder` + `@extend` groups selectors (no duplication, smaller output) but can't be used inside `@media` blocks. Use mixins for parametrized/responsive styles; `%placeholder` for shared static styles.
+**A:** A SCSS variable is compile-time only — resolved to a static value in the output CSS, it cannot change after compilation and is invisible to JavaScript. A CSS custom property exists in the output at runtime — it can be read and updated by JavaScript, changed inside media queries, and inherited through the DOM cascade.
 ```scss
-// Mixin: duplicated output, works anywhere
-@mixin card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.card  { @include card-shadow; }
-.modal { @include card-shadow; }
+$brand: #0d7377; // compile-time only — resolved away in output
 
-// Placeholder: grouped output, no duplication
-%card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.card  { @extend %card-shadow; }
-.modal { @extend %card-shadow; }
-// Output: .card, .modal { box-shadow: ... }
-```
-
-**Q22: How do you implement dark mode with SCSS?**
-**A:** Define light/dark color maps, generate CSS custom properties for each, and components consume variables. Toggle via `prefers-color-scheme` or a data attribute.
-```scss
-$themes: (
-  light: (bg: #fff, text: #2d3748, border: #e2e8f0),
-  dark:  (bg: #1a202c, text: #f7fafc, border: #4a5568),
-);
-
-@each $theme, $colors in $themes {
-  [data-theme="#{$theme}"] {
-    @each $prop, $val in $colors { --#{$prop}: #{$val}; }
-  }
+:root {
+  --color-brand: #{$brand}; // runtime custom property set from SCSS value
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #1a202c; --text: #f7fafc; }
-}
-```
-
-**Q23: How do you build a BEM component in SCSS?**
-**A:** Use `&` nesting to generate BEM class names. `__` for elements, `--` for modifiers. Keeps all related styles co-located while outputting flat BEM selectors.
-```scss
-.card {
-  background: #fff; border-radius: 8px;
-  &__header  { padding: 1rem; border-bottom: 1px solid #eee; }
-  &__body    { padding: 1rem; }
-  &__title   { font-size: 1.25rem; font-weight: 700; }
-  &__footer  { padding: 0.75rem 1rem; background: #f7fafc; }
-  &--featured { border-top: 4px solid var(--color-primary); }
-  &--compact &__body { padding: 0.5rem; }
-}
-```
-
-**Q24: How do you create a spacing scale utility with `@each` + map?**
-**A:** Define a scale map, iterate to generate margin/padding utilities. Same pattern used by Tailwind and Bootstrap 5.
-```scss
-$spacing: (0: 0, 1: 0.25rem, 2: 0.5rem, 3: 0.75rem, 4: 1rem, 6: 1.5rem, 8: 2rem, 12: 3rem);
-
-@each $key, $val in $spacing {
-  .m-#{$key}  { margin: $val; }
-  .mt-#{$key} { margin-top: $val; }
-  .mb-#{$key} { margin-bottom: $val; }
-  .mx-#{$key} { margin-left: $val; margin-right: $val; }
-  .my-#{$key} { margin-top: $val; margin-bottom: $val; }
-  .p-#{$key}  { padding: $val; }
-  .px-#{$key} { padding-left: $val; padding-right: $val; }
-  .py-#{$key} { padding-top: $val; padding-bottom: $val; }
-}
-```
-
-**Q25: How do you handle multiple themes/client brands in SCSS?**
-**A:** Store brand tokens in a map, generate CSS custom properties per brand class/data-attribute. Components use `var(--token)` — no SCSS changes needed per brand.
-```scss
-$brands: (
-  brand-a: (primary: #e63946, font: 'Roboto', radius: 0px),
-  brand-b: (primary: #0d7377, font: 'Inter',  radius: 8px),
-);
-
-@each $brand, $tokens in $brands {
-  [data-brand="#{$brand}"] {
-    --color-primary: #{map-get($tokens, primary)};
-    --font-family:   #{map-get($tokens, font)}, sans-serif;
-    --border-radius: #{map-get($tokens, radius)};
-  }
-}
-```
-
-**Q26: What is the SCSS `@use` namespace and how do you control it?**
-**A:** By default `@use 'path/file'` creates a namespace from the filename. Override with `as newname` or use `as *` to merge into global scope (use sparingly — defeats namespace purpose).
-```scss
-@use 'abstracts/variables' as vars;
-@use 'abstracts/mixins'    as mix;
-@use 'sass:math';          // built-in module
 
 .btn {
-  color: vars.$color-primary;
-  @include mix.flex-center;
-  font-size: math.div(14px, 16px) * 1rem;
-}
-
-// as * — global (avoid in large projects)
-@use 'abstracts/variables' as *;
-.btn { color: $color-primary; } // no namespace needed
-```
-
-**Q27: How do you add sass-loader to Webpack for WordPress blocks?**
-**A:** Install `sass-loader` and `sass`, configure in `webpack.config.js`. WordPress `@wordpress/scripts` supports SCSS out of the box with zero config.
-```js
-// webpack.config.js (manual setup)
-module.exports = {
-  module: {
-    rules: [{
-      test: /\.scss$/,
-      use: ['style-loader', 'css-loader', {
-        loader: 'sass-loader',
-        options: { implementation: require('sass'), sourceMap: true }
-      }]
-    }]
-  }
-};
-
-// Or with @wordpress/scripts — zero config:
-// npm install --save-dev @wordpress/scripts
-// package.json: "build": "wp-scripts build", "start": "wp-scripts start"
-```
-
-**Q28: How do you implement a visually-hidden mixin for accessibility?**
-**A:** Used to hide content visually while keeping it accessible to screen readers. Common for skip links, icon labels, and screen-reader-only descriptions.
-```scss
-@mixin visually-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@mixin visually-hidden-focusable {
-  @include visually-hidden;
-  &:active, &:focus {
-    position: static;
-    width: auto; height: auto;
-    overflow: visible;
-    clip: auto; white-space: normal;
-  }
-}
-
-.screen-reader-text { @include visually-hidden-focusable; }
-```
-
-**Q29: What is ITCSS and how does it relate to SCSS architecture?**
-**A:** ITCSS (Inverted Triangle CSS) orders styles from lowest to highest specificity: Settings → Tools → Generic → Elements → Objects → Components → Utilities. Prevents specificity conflicts. Maps well to 7-1 SCSS: abstracts = Settings+Tools, base = Generic+Elements, layout = Objects, components = Components, utilities = Utilities.
-```
-/* ITCSS layer order in main.scss */
-@use 'settings/variables';   // $colors, $fonts — no CSS output
-@use 'tools/mixins';         // mixins/functions — no CSS output
-@use 'generic/reset';        // *, box-sizing — lowest specificity
-@use 'elements/typography';  // h1, p, a — element selectors
-@use 'objects/grid';         // .o-grid — layout patterns
-@use 'components/card';      // .c-card — UI components
-@use 'utilities/spacing';    // .u-mt-4 — !important overrides
-```
-
-**Q30: How do you lint SCSS with Stylelint?**
-**A:** Stylelint with `stylelint-config-standard-scss` enforces SCSS best practices. Configure in `.stylelintrc.json` and add to npm scripts and pre-commit hooks.
-```json
-// .stylelintrc.json
-{
-  "extends": ["stylelint-config-standard-scss"],
-  "rules": {
-    "max-nesting-depth": 3,
-    "scss/dollar-variable-pattern": "^[a-z][a-z0-9-]*$",
-    "scss/at-mixin-pattern": "^[a-z][a-z0-9-]*$",
-    "selector-class-pattern": "^[a-z][a-z0-9-_]*$"
-  }
-}
-```
-```json
-// package.json scripts
-{ "lint:scss": "stylelint 'src/scss/**/*.scss' --fix" }
-```
-
-**Q31: How do you write a button variant mixin?**
-**A:** A mixin that generates all states (normal, hover, active, focus, disabled) for a button variant from a single background color argument.
-```scss
-@use 'sass:color';
-
-@mixin button-variant($bg, $text: #fff) {
-  background: $bg;
-  color: $text;
-  border: 2px solid $bg;
-
-  &:hover  { background: color.adjust($bg, $lightness: -8%); border-color: color.adjust($bg, $lightness: -8%); }
-  &:active { background: color.adjust($bg, $lightness: -15%); }
-  &:focus-visible { outline: 3px solid rgba($bg, 0.4); outline-offset: 2px; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-}
-
-.btn-primary { @include button-variant(#0d7377); }
-.btn-danger  { @include button-variant(#e53e3e); }
-```
-
-**Q32: How do you use `@each` with a nested map?**
-**A:** Maps can be nested (map of maps). Use `map.get` inside `@each` to access nested values.
-```scss
-@use 'sass:map';
-
-$type-scale: (
-  sm:  (size: 0.875rem, weight: 400, line-height: 1.5),
-  base:(size: 1rem,     weight: 400, line-height: 1.6),
-  lg:  (size: 1.125rem, weight: 600, line-height: 1.4),
-  xl:  (size: 1.5rem,   weight: 700, line-height: 1.3),
-);
-
-@each $name, $props in $type-scale {
-  .text-#{$name} {
-    font-size:   map.get($props, size);
-    font-weight: map.get($props, weight);
-    line-height: map.get($props, line-height);
-  }
-}
-```
-
-**Q33: How do you avoid `@extend` causing selector bloat?**
-**A:** `@extend` with concrete classes creates combinatorial explosions — every selector extending `.base` is combined with every selector that `.base` matches. Use `%placeholder` instead — only extended selectors are output.
-```scss
-// BAD: extending a real class pollutes output
-.btn { padding: 0.5rem 1rem; }
-.submit { @extend .btn; background: blue; }
-// Output: .btn, .submit { padding ... } — if .btn has media query contexts, multiplies
-
-// GOOD: use %placeholder
-%btn-base { padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
-.btn-primary { @extend %btn-base; background: #0d7377; }
-.btn-outline  { @extend %btn-base; border: 2px solid #0d7377; }
-// Output: .btn-primary, .btn-outline { padding ... }
-```
-
-**Q34: How do you set up a WordPress theme with SCSS?**
-**A:** Use `@wordpress/scripts` for block themes, or standalone `sass` CLI for classic themes. Compile to `style.css` (required by WordPress). Use `wp_enqueue_style` to load.
-```json
-// package.json — classic theme
-{
-  "scripts": {
-    "build": "sass src/scss/style.scss:style.css --style=compressed",
-    "watch": "sass src/scss/style.scss:style.css --watch"
-  }
-}
-```
-```scss
-// style.scss — WordPress theme header comment required
-/*!
-Theme Name: My Theme
-Version: 1.0.0
-*/
-@use 'abstracts/variables' as *;
-@use 'abstracts/mixins' as *;
-@use 'base/reset';
-@use 'components/buttons';
-```
-
-**Q35: How do you use `@while` in SCSS?**
-**A:** Loops while a condition is true. Less common than `@for` or `@each` — use when you need conditional iteration. Always ensure the condition eventually becomes false.
-```scss
-$i: 1;
-$max-cols: 12;
-
-@while $i <= $max-cols {
-  .col-#{$i} {
-    width: percentage($i / $max-cols);
-    float: left;
-    padding: 0 0.5rem;
-  }
-  $i: $i + 1;
+  background: var(--color-brand); // runtime — JS can override this
+  border-radius: $border-radius;  // compile-time only
 }
 ```
 
 ---
 
-## Advanced
+## Mid-Level (Q21–Q40)
 
-**Q36: How do you implement a design token system with SCSS + CSS custom properties?**
-**A:** Define all tokens as SCSS maps (single source of truth), output them as CSS custom properties in `:root`, and have both SCSS variables (compile-time) and CSS variables (runtime) available.
+---
+
+**Q21: How do you write a responsive breakpoint mixin pattern?**
+
+**A:** Store breakpoints in a map, then write a mixin that looks up the value and wraps `@content` in a `min-width` media query. This centralises breakpoint values in one place and produces consistent, readable call sites across every component file. A guard warns on unknown breakpoint names.
 ```scss
-$design-tokens: (
-  'color-primary':   #0d7377,
-  'color-surface':   #ffffff,
-  'space-unit':      0.25rem,
-  'font-size-base':  1rem,
-  'radius-md':       8px,
+@use 'sass:map';
+
+$breakpoints: (sm: 576px, md: 768px, lg: 1024px, xl: 1280px);
+
+@mixin respond-to($bp) {
+  $val: map.get($breakpoints, $bp);
+  @if not $val { @warn 'Unknown breakpoint: #{$bp}'; }
+  @else { @media (min-width: $val) { @content; } }
+}
+
+.card { width: 100%; @include respond-to(md) { width: 50%; } }
+```
+
+---
+
+**Q22: How do you generate utility classes with `@each`?**
+
+**A:** Iterate over a spacing or color map with `@each` and use `#{}` interpolation to build class names dynamically. One loop produces dozens of utility classes from a single data source, keeping the system DRY and easily extensible by adding entries to the map alone.
+```scss
+$spacings: (1: 0.25rem, 2: 0.5rem, 3: 1rem, 4: 1.5rem, 5: 2rem);
+
+@each $key, $value in $spacings {
+  .mt-#{$key} { margin-top:     $value; }
+  .mb-#{$key} { margin-bottom:  $value; }
+  .pt-#{$key} { padding-top:    $value; }
+  .pb-#{$key} { padding-bottom: $value; }
+}
+```
+
+---
+
+**Q23: How do you implement dark mode with SCSS color maps?**
+
+**A:** Store both themes in a nested map and loop to emit scoped CSS custom properties per `[data-theme]` attribute selector. Components reference only `var()` tokens, so switching themes at runtime requires a single attribute change on the root element — no SCSS recompilation needed at any point.
+```scss
+$themes: (
+  light: (bg: #ffffff, text: #1a202c, surface: #f7fafc),
+  dark:  (bg: #1a202c, text: #f7fafc, surface: #2d3748),
 );
 
-// Output CSS custom properties
-:root {
-  @each $token, $value in $design-tokens {
-    --#{$token}: #{$value};
-  }
-}
-
-// SCSS variable aliases for compile-time use
-$color-primary: map-get($design-tokens, 'color-primary');
-
-// Component uses CSS variable (runtime themeable)
-.btn { background: var(--color-primary); }
-```
-
-**Q37: How do you write SCSS for a full-site-editable WordPress theme?**
-**A:** WordPress FSE themes use `theme.json` for design tokens — SCSS should output classes that match the generated CSS custom property names (`--wp--preset--color--primary`). Avoid hardcoding values that `theme.json` controls.
-```scss
-// Use WP-generated CSS custom properties in SCSS
-.my-block {
-  background: var(--wp--preset--color--primary);
-  font-size: var(--wp--preset--font-size--medium);
-  padding: var(--wp--preset--spacing--50);
-  border-radius: var(--wp--custom--border-radius);
-}
-
-// Only add styles that theme.json can't provide
-.my-block--featured {
-  border-left: 4px solid var(--wp--preset--color--accent);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-}
-```
-
-**Q38: What causes SCSS compile performance issues and how do you fix them?**
-**A:** Large `@import` chains, deeply nested selectors, `@extend` with complex selectors, and huge utility class `@each` loops. Migrate from `@import` to `@use` (each file compiled once), split large files, and use `--no-source-map` during development.
-```json
-{
-  "scripts": {
-    "sass:dev":   "sass src:dist --watch --no-source-map --style=expanded",
-    "sass:build": "sass src/main.scss dist/style.css --style=compressed --source-map",
-    "sass:stats": "sass src/main.scss /dev/null --load-path=src 2>&1 | grep 'Compiled'"
-  }
-}
-```
-
-**Q39: How do you use `sass:math` module for precise calculations?**
-**A:** The `sass:math` module provides `math.div()` for division (replacing the deprecated `/` operator), `math.floor/ceil/round`, `math.percentage`, and trigonometric functions.
-```scss
-@use 'sass:math';
-
-// Division — use math.div, not /
-.container { width: math.percentage(math.div(10, 12)); } // 83.333%
-
-// Fluid font size without clamp()
-@function fluid-type($min, $max, $min-vw: 320px, $max-vw: 1280px) {
-  $slope: math.div($max - $min, $max-vw - $min-vw);
-  $intercept: $min - $slope * $min-vw;
-  @return clamp(#{$min}, #{$slope * 100}vw + #{$intercept}, #{$max});
-}
-
-h1 { font-size: fluid-type(1.5rem, 3rem); }
-```
-
-**Q40: How do you migrate a large legacy CSS codebase to SCSS without breaking production?**
-**A:** Incremental migration: (1) rename `style.css` → `style.scss` (all CSS is valid SCSS), (2) run sass compilation in CI and diff output vs original, (3) gradually extract variables/mixins, (4) introduce nesting conservatively, (5) migrate imports to `@use`, (6) enforce stylelint from day one.
-```bash
-# Step 1: verify compiled output matches original
-sass style.scss compiled.css --style=expanded
-diff style.css compiled.css  # should be empty diff
-
-# Step 2: CI check — fail if output changes unexpectedly
-sass src/style.scss /tmp/built.css
-diff dist/style.css /tmp/built.css || exit 1
-
-# Step 3: Gradually extract partials
-# Create _variables.scss, replace hex values, verify diff still clean
-```
-
-**Q41: How do you use SCSS to generate a CSS grid system?**
-**A:** Use `@for` loops with `fr` units and `@each` for responsive breakpoints to generate a complete grid system.
-```scss
-$grid-columns: 12;
-$breakpoints: (sm: 576px, md: 768px, lg: 1024px);
-
-.grid { display: grid; gap: 1rem; }
-
-@for $i from 1 through $grid-columns {
-  .col-#{$i} { grid-column: span $i; }
-}
-
-@each $bp, $width in $breakpoints {
-  @media (min-width: $width) {
-    @for $i from 1 through $grid-columns {
-      .col-#{$bp}-#{$i} { grid-column: span $i; }
+@each $theme, $palette in $themes {
+  [data-theme='#{$theme}'] {
+    @each $token, $value in $palette {
+      --color-#{$token}: #{$value};
     }
   }
 }
-// Generates: .col-1 ... .col-12, .col-sm-1 ... .col-lg-12
 ```
 
-**Q42: How do you handle PostCSS + autoprefixer with SCSS in a WordPress build?**
-**A:** Use PostCSS after SCSS compilation to add vendor prefixes and apply modern CSS transforms. Configure via `postcss.config.js`.
+---
+
+**Q24: What is the 7-1 SCSS architecture pattern?**
+
+**A:** Seven thematic folders feed one `main.scss` entry file: `abstracts/` (variables, mixins, functions), `base/` (reset, typography), `layout/` (grid, header, footer), `components/` (buttons, cards), `pages/` (page-specific overrides), `themes/` (dark/light), `vendors/` (third-party overrides). All folders contain underscore-prefixed partials.
+```scss
+// main.scss — one @use per partial group
+@use 'abstracts';
+@use 'base/reset';
+@use 'base/typography';
+@use 'layout/grid';
+@use 'layout/header';
+@use 'components/button';
+@use 'components/card';
+@use 'pages/home';
+```
+
+---
+
+**Q25: What is ITCSS and how does it inform SCSS file ordering?**
+
+**A:** Inverted Triangle CSS orders layers from generic to specific: Settings → Tools → Generic → Elements → Objects → Components → Utilities. Specificity grows with each layer so rules never need to override each other by fighting the cascade. In SCSS, each layer maps to a folder of partials imported in strict order.
+```scss
+@use '01-settings/tokens';    // $variables only — no CSS output
+@use '02-tools/mixins';       // mixins/functions — no CSS output
+@use '03-generic/reset';      // box-sizing, margin resets
+@use '04-elements/headings';  // bare h1–h6 styles
+@use '05-objects/wrapper';    // layout abstractions
+@use '06-components/card';    // UI component styles
+@use '07-utilities/spacing';  // single-purpose !important helpers
+```
+
+---
+
+**Q26: How do you apply BEM naming with SCSS nesting?**
+
+**A:** BEM Block__Element--Modifier maps cleanly to SCSS `&` chaining. The block is the top-level selector; elements and modifiers are nested using `&__` and `&--`. All related styles stay co-located in one block without producing deep descendant selectors in the compiled CSS output.
+```scss
+.card {
+  background: #fff; border-radius: 8px;
+
+  &__header  { padding: 1rem; border-bottom: 1px solid #eee; }
+  &__body    { padding: 1rem; }
+  &__footer  { padding: 0.5rem 1rem; text-align: right; }
+
+  &--featured { border: 2px solid #0d7377; }
+  &--compact  { .card__body { padding: 0.5rem; } }
+}
+```
+
+---
+
+**Q27: How do you output CSS custom properties from an SCSS map?**
+
+**A:** Loop over a tokens map inside `:root` and interpolate the key as the custom property name. The compiled CSS exposes runtime-accessible custom properties while the SCSS map remains the single source of truth. JavaScript can read or override them at runtime via `getPropertyValue` and `setProperty`.
+```scss
+$design-tokens: (
+  'color-primary':   #0d7377,
+  'color-secondary': #1e3a5f,
+  'space-base':      1rem,
+  'radius-default':  4px,
+);
+
+:root {
+  @each $name, $value in $design-tokens {
+    --#{$name}: #{$value};
+  }
+}
+```
+
+---
+
+**Q28: How do you configure `sass-loader` in webpack?**
+
+**A:** Install `sass-loader`, `sass`, and `css-loader`. Add a rule targeting `.scss` files in `webpack.config.js`. The loader chain runs right-to-left: `sass-loader` compiles SCSS, `css-loader` resolves `@import` and `url()`, then `style-loader` or `MiniCssExtractPlugin` handles injection or extraction.
+```js
+// webpack.config.js
+module.exports = {
+  module: {
+    rules: [{
+      test: /\.scss$/,
+      use: [
+        'style-loader',
+        'css-loader',
+        {
+          loader: 'sass-loader',
+          options: { sassOptions: { outputStyle: 'compressed' } },
+        },
+      ],
+    }],
+  },
+};
+```
+
+---
+
+**Q29: What are the key Sass CLI compilation flags?**
+
+**A:** `--style` controls output format (`expanded` for dev, `compressed` for prod). `--source-map` and `--no-source-map` toggle browser DevTools mapping. `--watch` triggers recompilation on every file save. `--load-path` adds additional directories to the import resolution search path for node_modules imports.
+```bash
+# Dev: human-readable output + source maps + auto-recompile
+sass src/scss:dist/css --style=expanded --source-map --watch
+
+# Production: compressed, no source maps
+sass src/scss/main.scss dist/css/main.css --style=compressed --no-source-map
+
+# Add node_modules to the load path for package imports
+sass src/scss:dist/css --load-path=node_modules
+```
+
+---
+
+**Q30: How do you integrate PostCSS + Autoprefixer with an SCSS build?**
+
+**A:** SCSS compiles first, then PostCSS processes the resulting CSS to add vendor prefixes and apply transforms. In webpack, `postcss-loader` sits between `css-loader` and `sass-loader`. A `postcss.config.js` declares the plugins, and Autoprefixer reads the project's `browserslist` config to determine which prefixes to inject.
 ```js
 // postcss.config.js
 module.exports = {
   plugins: [
-    require('autoprefixer'),         // adds -webkit- etc.
-    require('postcss-preset-env')({ stage: 2 }), // modern CSS polyfills
-    require('cssnano')({ preset: 'default' }),    // minification
-  ]
+    require('autoprefixer'),
+    require('postcss-custom-properties'), // optional runtime polyfill
+  ],
 };
+// webpack loader order (right-to-left): sass-loader → postcss-loader → css-loader
 ```
+
+---
+
+**Q31: How do you configure stylelint for SCSS?**
+
+**A:** Install `stylelint` and `stylelint-config-standard-scss`, create a `.stylelintrc.json` with project-specific rules, and add a `lint:css` npm script. Run it in CI to block merges with style violations. The official VS Code extension surfaces lint errors inline as you type during development.
 ```json
-// package.json pipeline
 {
-  "scripts": {
-    "build": "sass src/scss/style.scss temp.css && postcss temp.css -o style.min.css"
+  "extends": ["stylelint-config-standard-scss"],
+  "rules": {
+    "scss/dollar-variable-pattern": "^[a-z][a-z0-9-]*$",
+    "max-nesting-depth": 3,
+    "selector-class-pattern": "^[a-z][a-z0-9-_]*$"
   }
 }
 ```
 
-**Q43: What are the differences between CSS Modules and SCSS for WordPress block development?**
-**A:** CSS Modules scope class names locally via hashing (`.btn` → `.btn_abc123`) — zero specificity conflicts, works with `@wordpress/scripts`. SCSS is global by default, relies on BEM naming conventions for isolation. CSS Modules are better for React-heavy Gutenberg blocks; SCSS better for theme styles.
-```js
-// CSS Modules in a block (with @wordpress/scripts)
-import styles from './style.module.scss';
-// <div className={styles.card}> → <div class="card_a1b2c3">
+---
 
-// Regular SCSS (global, BEM naming for isolation)
-// style.scss: .wp-block-my-plugin-card { ... }
-// Relies on unique block class prefix — no scoping
+**Q32: How do CSS Modules differ from global SCSS?**
+
+**A:** CSS Modules scope class names locally by default — the build tool transforms `.card` to a unique hash like `.card_xk3f9` so styles never bleed across components. Global SCSS applies document-wide. Files named `.module.scss` receive Module scoping automatically in Next.js and Create React App.
+```scss
+// Button.module.scss — locally scoped by build tool
+.button {
+  background: var(--color-primary);
+  &:hover { opacity: 0.9; }
+}
+// JS: import styles from './Button.module.scss'
+// <button className={styles.button}> → hashed class in HTML output
 ```
 
-**Q44: How do you implement a print stylesheet with SCSS?**
-**A:** Use a `@media print` block or a separate `print.scss` partial. Hide navigation, sidebars, ads. Set font sizes in pt. Expand link URLs.
+---
+
+**Q33: How do `@use` namespaces solve problems caused by `@import`?**
+
+**A:** With `@import`, all variables and mixins land in the global namespace — naming collisions are silent and the same file can be compiled multiple times. `@use` sandboxes each file behind its namespace, loads each file only once, and makes every dependency explicitly visible at the top of the consuming file.
 ```scss
-// _print.scss
-@media print {
-  nav, .sidebar, .ads, .cookie-banner, .btn { display: none !important; }
+// @import (deprecated) — pollutes global namespace
+@import 'variables';
+$primary; // works, but which file defined it? collision risk
 
-  body { font-size: 12pt; color: #000; background: #fff; }
-  h1   { font-size: 18pt; }
-  h2   { font-size: 14pt; }
+// @use — explicit namespace, loaded once, no collisions
+@use 'abstracts/variables' as v;
+v.$primary; // clear origin, impossible to accidentally collide
+```
 
-  a { color: #000; text-decoration: underline; }
-  a[href]::after { content: " (" attr(href) ")"; font-size: 10pt; }
+---
 
-  .wp-block-image img { max-width: 100%; page-break-inside: avoid; }
-  @page { margin: 2cm; size: A4; }
+**Q34: How do you use `map.merge` and `map.keys`?**
+
+**A:** `map.merge($a, $b)` returns a new combined map with `$b` values winning on duplicate keys — useful for extending a base config with overrides. `map.keys($map)` returns a list of all keys — useful for validation guards and error messages. Both require `@use 'sass:map'`.
+```scss
+@use 'sass:map';
+
+$base:     (sm: 576px, md: 768px);
+$extended: map.merge($base, (lg: 1024px, xl: 1280px));
+
+@mixin respond-to($bp) {
+  @if not map.has-key($extended, $bp) {
+    @error 'Unknown bp: #{$bp}. Valid: #{map.keys($extended)}';
+  }
+  @media (min-width: map.get($extended, $bp)) { @content; }
 }
 ```
 
-**Q45: How do you test SCSS output with True (Sass unit testing framework)?**
-**A:** True is a Sass unit testing library — test that mixins and functions produce expected CSS output. Run with `jest-runner-sass` or the `true` CLI.
-```scss
-// test/_button.scss
-@use 'true' as *;
-@use '../src/mixins' as mix;
+---
 
-@include describe('button-variant mixin') {
-  @include it('outputs correct background color') {
-    @include assert {
-      @include output { @include mix.button-variant(#0d7377); }
-      @include expect { background: #0d7377; color: #fff; }
+**Q35: How do you use `@use` with namespace aliases?**
+
+**A:** `as alias` assigns a custom short name to a module's namespace, improving readability in files that reference many imported symbols. `as *` merges all members into the local scope without a prefix — only appropriate in forwarding index files where transparent re-export is the goal.
+```scss
+@use 'sass:math'         as math;
+@use 'abstracts/tokens'  as t;
+@use 'abstracts/mixins'  as mx;
+
+.grid__col-4 {
+  width: math.percentage(math.div(4, 12)); // 33.33%
+  color: t.$color-text;
+  @include mx.respond-to(md) { font-size: 1.125rem; }
+}
+```
+
+---
+
+**Q36: How do you implement a design token system with SCSS?**
+
+**A:** Define raw primitive tokens in one partial and semantic tokens (referencing primitives by name) in another. Output both as CSS custom properties at build time. Components consume only `var()` semantic tokens, so a single map edit propagates everywhere at runtime without recompilation.
+```scss
+@use 'sass:map';
+
+$raw:      (blue-500: #3b82f6, blue-700: #1d4ed8, space-4: 1rem);
+$semantic: (
+  color-action:       map.get($raw, blue-500),
+  color-action-hover: map.get($raw, blue-700),
+  space-component:    map.get($raw, space-4),
+);
+
+:root { @each $n, $v in $semantic { --#{$n}: #{$v}; } }
+```
+
+---
+
+**Q37: How do you avoid the `@extend` specificity explosion problem?**
+
+**A:** Extending a concrete class clones every selector that already contains it, creating combinatorial selector chains that can produce thousands of combined rules. Always extend `%placeholder` selectors, which have no prior references. For unrelated DOM elements, use a mixin — CSS is duplicated but remains predictable and scoped.
+```scss
+// BAD — extending a real class clones all its selector contexts
+.icon-btn { @extend .btn; }
+
+// GOOD — extend a placeholder: only .btn and .icon-btn are grouped
+%button-base { display: inline-flex; padding: 0.5rem 1rem; }
+.btn      { @extend %button-base; }
+.icon-btn { @extend %button-base; }
+```
+
+---
+
+**Q38: How do you set up SCSS compilation for a WordPress theme with npm scripts?**
+
+**A:** Add `sass` as a dev dependency and define `dev` and `build` scripts in `package.json`. The build script produces a compressed stylesheet without source maps for production. The dev script watches for changes and outputs source maps for DevTools debugging. Enqueue the compiled CSS in `functions.php` via `wp_enqueue_style`.
+```json
+{
+  "devDependencies": { "sass": "^1.70.0" },
+  "scripts": {
+    "dev":   "sass src/scss:assets/css --watch --source-map",
+    "build": "sass src/scss/main.scss assets/css/main.css --style=compressed --no-source-map"
+  }
+}
+```
+
+---
+
+**Q39: How do you optimise SCSS compile time on large projects?**
+
+**A:** Use `@forward` index files so each component needs only one `@use` instead of many individual imports. Avoid deep `@extend` chains which force expensive selector-grouping work. Split the output into per-page entry points loaded conditionally to reduce both compile scope per run and browser download size.
+```scss
+// abstracts/_index.scss — single aggregation point via @forward
+@forward 'variables';
+@forward 'mixins';
+@forward 'functions';
+
+// Component file: one @use instead of three separate imports
+@use '../abstracts' as a; // faster compile, single dependency
+.card { color: a.$primary; @include a.flex-center; }
+```
+
+---
+
+**Q40: How do you use `@use 'sass:math'` for safe division?**
+
+**A:** The `/` operator is deprecated as a division operator in Dart Sass because it is syntactically ambiguous with the CSS `calc()` slash separator. Use `math.div($a, $b)` from the `sass:math` module instead. The module also provides `math.percentage()`, `math.round()`, `math.floor()`, `math.ceil()`, and the constant `math.$pi`.
+```scss
+@use 'sass:math';
+
+$columns: 12;
+
+@for $i from 1 through $columns {
+  .col-#{$i} {
+    // math.div replaces the deprecated: $i / $columns
+    width: math.percentage(math.div($i, $columns));
+  }
+}
+```
+
+---
+
+## Advanced (Q41–Q50)
+
+---
+
+**Q41: How do you build a recursive SCSS function for deep map lookups?**
+
+**A:** Dart Sass's `map.get` retrieves only one level at a time. A recursive `@function` accepting a variadic key list calls `map.get` at each depth level and short-circuits on `null`. This produces a clean lookup API for deeply nested token structures like `token($tokens, colors, primary, base)`.
+```scss
+@use 'sass:map';
+
+@function token($map, $keys...) {
+  $current: $map;
+  @each $key in $keys {
+    $current: map.get($current, $key);
+    @if $current == null { @return null; }
+  }
+  @return $current;
+}
+
+$tokens: (colors: (primary: (base: #0d7377, light: #14a085)));
+.btn { color: token($tokens, colors, primary, base); } // #0d7377
+```
+
+---
+
+**Q42: How do you generate a multi-breakpoint responsive grid with `@for` and `@each`?**
+
+**A:** Double-loop over a column count and a breakpoints map: the outer `@each` creates a `@media` context, the inner `@for` generates column-width classes within it. This mirrors Bootstrap's grid approach but gives complete control over naming conventions, column count, and gap values.
+```scss
+@use 'sass:math';
+
+$columns:     12;
+$breakpoints: (sm: 576px, md: 768px, lg: 1024px);
+
+@each $bp, $width in $breakpoints {
+  @media (min-width: $width) {
+    @for $i from 1 through $columns {
+      .col-#{$bp}-#{$i} {
+        width: math.percentage(math.div($i, $columns));
+      }
     }
   }
 }
 ```
+
+---
+
+**Q43: How do you build a multi-brand theming system with SCSS maps?**
+
+**A:** Store each brand's token overrides in a nested map and loop to emit scoped `--custom-property` blocks under a `[data-brand]` attribute selector. All components reference only `var()` tokens, so switching brands at runtime is a single attribute mutation on the root element — no SCSS recompilation required.
+```scss
+$brands: (
+  brand-a: (primary: #0d7377, font: 'Inter',   radius: 4px),
+  brand-b: (primary: #c0392b, font: 'Georgia', radius: 0px),
+);
+
+@each $brand, $tokens in $brands {
+  [data-brand='#{$brand}'] {
+    @each $token, $value in $tokens {
+      --#{$token}: #{$value};
+    }
+  }
+}
+```
+
+---
+
+**Q44: Why can't `@extend` be used inside `@media` blocks and what is the workaround?**
+
+**A:** Sass raises a compile error when `@extend` targets a selector defined outside the current `@media` context because it cannot merge selectors across different media boundaries in the output. The correct workaround is a `@mixin` with `@content` or a static mixin — CSS is duplicated at each site but is fully scoped and always error-free.
+```scss
+// ERROR — cannot @extend across @media context boundaries
+@media (min-width: 768px) {
+  .card { @extend %panel; } // CompileError!
+}
+
+// CORRECT — use a mixin; CSS is inlined, no cross-boundary merging
+@mixin panel-styles { padding: 1rem; border: 1px solid #eee; }
+@media (min-width: 768px) {
+  .card { @include panel-styles; }
+}
+```
+
+---
+
+**Q45: What are `@debug`, `@warn`, and `@error` used for?**
+
+**A:** `@debug` prints any value to the terminal during compilation — useful for inspecting intermediate variable contents. `@warn` emits a non-fatal warning and lets compilation continue — appropriate for deprecation notices. `@error` halts compilation immediately — appropriate for invalid arguments that would produce broken or meaningless CSS output.
+```scss
+@use 'sass:map';
+
+$palette: (primary: #0d7377, danger: #e53e3e);
+
+@mixin text-color($name) {
+  @debug 'text-color called with: #{$name}';
+  @if not map.has-key($palette, $name) {
+    @error 'Invalid color "#{$name}". Valid keys: #{map.keys($palette)}';
+  }
+  color: map.get($palette, $name);
+}
+```
+
+---
+
+**Q46: How do you integrate PurgeCSS with a SCSS/WordPress build pipeline?**
+
+**A:** PurgeCSS scans PHP template files and JavaScript for class names actually used in the project, then strips every unused selector from the compiled CSS. Configure it as a PostCSS plugin in production mode only and include a `safelist` regex for dynamic WordPress classes like `wp-*`, `is-*`, and `has-*` that PurgeCSS cannot detect statically.
+```js
+// postcss.config.js
+const isProd = process.env.NODE_ENV === 'production';
+module.exports = {
+  plugins: [
+    require('autoprefixer'),
+    isProd && require('@fullhuman/postcss-purgecss')({
+      content:  ['**/*.php', 'src/**/*.js'],
+      safelist: [/^wp-/, /^is-/, /^has-/, /^block-/],
+    }),
+  ].filter(Boolean),
+};
+```
+
+---
+
+**Q47: How do you enforce SCSS code quality in a CI/CD pipeline for a WordPress project?**
+
+**A:** Add `stylelint` and `stylelint-config-standard-scss` as dev dependencies, define a `.stylelintrc.json` with project-specific rules, and add a `lint:css` npm script. In GitHub Actions, run the script as a required status check so pull requests with style violations are automatically blocked from merging to the main branch.
+```yaml
+# .github/workflows/lint.yml
+name: Lint SCSS
+on: [push, pull_request]
+jobs:
+  scss-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx stylelint "src/scss/**/*.scss" --formatter=compact
+```
+
+---
+
+**Q48: How do you migrate a legacy `@import`-based SCSS project to `@use`/`@forward`?**
+
+**A:** Run the official `sass-migrator module --migrate-deps scss/main.scss` to auto-generate `@use` statements and add namespaces to every variable and mixin reference throughout the dependency graph. After migration, audit for lingering global calls, replace deprecated color functions with `sass:color` module equivalents, and diff the compiled output to catch regressions.
 ```bash
-npx true-cli tests/test.scss
-# ✔ button-variant mixin: outputs correct background color
+# Install the official Sass migrator tool
+npm install -g sass-migrator
+
+# Auto-migrate the entire dependency graph starting from the entry file
+sass-migrator module --migrate-deps src/scss/main.scss
+
+# Before: @import 'variables'  →  $primary-color (global)
+# After:  @use 'variables' as v  →  v.$primary-color (namespaced)
 ```
 
+---
 
-**Q46: How do you use SCSS `@warn` and `@error` for safer mixins?**
-**A:** `@warn` prints a message to stderr at compile time; `@error` halts compilation. Use them to guide correct mixin usage.
+**Q49: How do you build a design token pipeline from SCSS through to JavaScript?**
+
+**A:** Define all tokens in an SCSS map, compile them to CSS custom properties in `:root`, and separately generate a JSON file via a Node.js build script. JavaScript imports the JSON for programmatic use in canvas rendering, animation values, or theming logic. One SCSS map is the authoritative source for all environments and outputs.
 ```scss
-@mixin font-size($size) {
-  @if type-of($size) != 'number' {
-    @error "font-size expects a number, got #{$size}";
-  }
-  @if unit($size) == '' {
-    @warn "font-size: unitless value #{$size} — assuming rem";
-    $size: $size * 1rem;
-  }
-  font-size: $size;
-}
-.text { @include font-size(1.2rem); }  // OK
-.bad  { @include font-size(1.2);    }  // Warn: unitless
+// _tokens.scss → CSS custom properties compiled to stylesheet
+$color-tokens: ('primary': #0d7377, 'secondary': #1e3a5f);
+:root { @each $n, $v in $color-tokens { --color-#{$n}: #{$v}; } }
+
+// build-tokens.mjs (Node.js — run as part of the build pipeline)
+// const tokens = { primary: '#0d7377', secondary: '#1e3a5f' };
+// await fs.writeFile('src/tokens.json', JSON.stringify(tokens, null, 2));
 ```
 
-**Q47: How do you generate utility classes with `@each` over a SCSS map?**
-**A:** Loop over a map to produce systematic classes without repetition — ideal for spacing, color, and typography utilities.
-```scss
-$spacings: ('0': 0, '1': 0.25rem, '2': 0.5rem, '3': 1rem, '4': 2rem);
+---
 
-@each $key, $val in $spacings {
-  .m-#{$key}  { margin: $val; }
-  .mt-#{$key} { margin-top: $val; }
-  .mb-#{$key} { margin-bottom: $val; }
-  .p-#{$key}  { padding: $val; }
-}
-// Output: .m-0 { margin: 0 } .m-1 { margin: 0.25rem } …
-```
+**Q50: How do you architect an enterprise WordPress theme SCSS setup end-to-end?**
 
-**Q48: What is `@use 'sass:math'` and why replace division `/` with `math.div()`?**
-**A:** In Dart Sass, `/` for division is deprecated. Import the built-in `sass:math` module and use `math.div()` to avoid future breakage.
-```scss
-@use 'sass:math';
-
-.column {
-  // Old (deprecated): width: 100% / 3;
-  width: math.div(100%, 3); // 33.3333%
-}
-
-@mixin grid($cols: 12) {
-  @for $i from 1 through $cols {
-    .col-#{$i} { width: math.div(100%, $cols) * $i; }
+**A:** Combine `sass` for compilation, `postcss-cli` with autoprefixer for vendor prefixes, `stylelint` for linting, and separate dev/prod npm scripts wired into a top-level `build` command. Source maps are enabled only in dev mode. The compiled CSS is enqueued via `wp_enqueue_style` in `functions.php` — SCSS source files are never exposed to or loaded by WordPress directly.
+```json
+{
+  "scripts": {
+    "lint:css":     "stylelint 'src/scss/**/*.scss'",
+    "compile:dev":  "sass src/scss/main.scss:assets/css/main.css --source-map --watch",
+    "compile:prod": "sass src/scss/main.scss assets/css/main.css --style=compressed --no-source-map",
+    "postcss":      "postcss assets/css/main.css -o assets/css/main.css",
+    "build":        "npm run lint:css && npm run compile:prod && npm run postcss",
+    "dev":          "npm run compile:dev"
   }
 }
-@include grid();
-```
-
-**Q49: How do you scope SCSS variables per-component using `@use` namespaces?**
-**A:** Each `@use` creates a namespace, preventing variable collisions. Use `as *` sparingly — prefer explicit namespaces in large codebases.
-```scss
-// tokens/_colors.scss
-$brand: #0d7377;
-$accent: #ffd700;
-
-// components/_card.scss
-@use '../tokens/colors' as colors;
-@use '../tokens/spacing' as sp;
-
-.card {
-  border-left: 4px solid colors.$brand;
-  padding: sp.$md;
-  &:hover { border-color: colors.$accent; }
-}
-```
-
-**Q50: How do you build a fluid typography scale with SCSS and `clamp()`?**
-**A:** Combine SCSS math with CSS `clamp()` to create viewport-responsive font sizes without media queries.
-```scss
-@use 'sass:math';
-
-// fluid($min-size, $max-size, $min-vw: 320px, $max-vw: 1200px)
-@function fluid($min, $max, $min-vw: 320px, $max-vw: 1200px) {
-  $slope: math.div($max - $min, $max-vw - $min-vw);
-  $intercept: $min - $slope * $min-vw;
-  @return clamp(#{$min}, #{$slope * 100vw + $intercept}, #{$max});
-}
-
-h1 { font-size: fluid(1.75rem, 3.5rem); }
-h2 { font-size: fluid(1.5rem,  2.5rem); }
-p  { font-size: fluid(1rem,    1.25rem); }
-// → clamp(1.75rem, 2.24vw + 1rem, 3.5rem)
 ```

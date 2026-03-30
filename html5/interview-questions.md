@@ -9,6 +9,7 @@
 ## Basic
 
 **Q1: What does the `<!DOCTYPE html>` declaration do?**
+
 **A:** It tells the browser to render the page in standards mode rather than quirks mode. Without it, browsers apply legacy rendering rules that can break modern CSS and layouts.
 ```html
 <!DOCTYPE html>
@@ -19,6 +20,7 @@
 ```
 
 **Q2: What is the difference between `<div>` and `<section>`?**
+
 **A:** `<div>` is a generic non-semantic container. `<section>` is a semantic element that groups thematically related content and should have a heading, improving accessibility and SEO.
 ```html
 <section>
@@ -29,6 +31,7 @@
 ```
 
 **Q3: What is the difference between `<article>` and `<section>`?**
+
 **A:** `<article>` represents a self-contained, independently distributable piece of content (post, comment, widget). `<section>` groups related content that is part of a larger whole.
 ```html
 <article>
@@ -38,6 +41,7 @@
 ```
 
 **Q4: What semantic elements define the outer structure of a page?**
+
 **A:** `<header>`, `<nav>`, `<main>`, `<aside>`, and `<footer>` define the key regions. Browsers and assistive technologies use them to provide landmark navigation.
 ```html
 <body>
@@ -51,6 +55,7 @@
 ```
 
 **Q5: What HTML5 input types improve mobile UX?**
+
 **A:** `email`, `tel`, `url`, `number`, `date`, `range`, and `color` trigger the appropriate on-screen keyboard or picker on mobile and enable built-in browser validation.
 ```html
 <input type="email"  name="email"  placeholder="you@example.com">
@@ -60,6 +65,7 @@
 ```
 
 **Q6: What do the `required`, `pattern`, and `placeholder` attributes do?**
+
 **A:** `required` prevents form submission when the field is empty. `pattern` validates the value against a regex. `placeholder` shows hint text that disappears on input — it is not a label replacement.
 ```html
 <input type="text" name="postcode"
@@ -69,6 +75,7 @@
 ```
 
 **Q7: How do `<audio>` and `<video>` elements work?**
+
 **A:** They embed media with native browser controls. Multiple `<source>` children list fallback formats; the browser picks the first it supports. The `controls` attribute renders the default playback UI.
 ```html
 <video controls width="640" poster="thumb.jpg">
@@ -90,12 +97,14 @@
 ```
 
 **Q9: What does the `meta viewport` tag do?**
+
 **A:** It instructs the browser to set the viewport width to the device width and start at 1× zoom, preventing mobile browsers from scaling down a desktop layout into a tiny view.
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ```
 
 **Q10: What are Open Graph tags and why are they important?**
+
 **A:** Open Graph `<meta>` tags (prefixed `og:`) define how a page appears when shared on social platforms like Facebook and LinkedIn — controlling title, description, image, and URL.
 ```html
 <meta property="og:title"       content="My Post Title">
@@ -105,6 +114,7 @@
 ```
 
 **Q11: What is schema.org JSON-LD and why use it?**
+
 **A:** JSON-LD is Google's preferred method to embed structured data in a `<script type="application/ld+json">` block. It helps search engines understand content and can enable rich results (breadcrumbs, FAQs, etc.).
 ```html
 <script type="application/ld+json">
@@ -119,6 +129,7 @@
 ```
 
 **Q12: What is the `autocomplete` attribute and when should you disable it?**
+
 **A:** `autocomplete` hints to the browser to prefill form fields from saved data. Use token values like `"email"` or `"current-password"` to help password managers; set `"off"` only for one-time security codes.
 ```html
 <input type="email"    name="email"    autocomplete="email">
@@ -127,6 +138,7 @@
 ```
 
 **Q13: What is the difference between `localStorage` and `sessionStorage`?**
+
 **A:** Both store string key-value pairs client-side. `localStorage` persists until explicitly cleared. `sessionStorage` is scoped to the browser tab and cleared when the tab closes.
 ```js
 localStorage.setItem('theme', 'dark');
@@ -136,6 +148,7 @@ sessionStorage.setItem('draft', JSON.stringify({ title: 'Hello' }));
 ```
 
 **Q14: How do `async` and `defer` script attributes differ?**
+
 **A:** Both download the script in parallel without blocking HTML parsing. `async` executes immediately when downloaded (unpredictable order). `defer` executes in source order after the DOM is fully parsed.
 ```html
 <!-- Third-party analytics: order does not matter -->
@@ -146,6 +159,7 @@ sessionStorage.setItem('draft', JSON.stringify({ title: 'Hello' }));
 ```
 
 **Q15: What is lazy loading and how do you enable it natively?**
+
 **A:** Native lazy loading defers loading of off-screen images and iframes until they approach the viewport, reducing initial page weight. Add `loading="lazy"` to the element.
 ```html
 <img src="photo.jpg"
@@ -157,6 +171,7 @@ sessionStorage.setItem('draft', JSON.stringify({ title: 'Hello' }));
 ```
 
 **Q16: What is the `<picture>` element and how does it differ from `srcset`?**
+
 **A:** `<picture>` allows art-direction: serving completely different images per breakpoint via `<source media="…">`. `srcset` on `<img>` serves the same image at different resolutions/sizes without changing the crop.
 ```html
 <picture>
@@ -167,6 +182,7 @@ sessionStorage.setItem('draft', JSON.stringify({ title: 'Hello' }));
 ```
 
 **Q17: What do `<link rel="preload">`, `rel="prefetch"`, and `rel="preconnect"` do?**
+
 **A:** `preload` fetches a critical resource for the current page immediately. `prefetch` fetches a resource needed for a likely future navigation at low priority. `preconnect` establishes the TCP/TLS connection to a third-party origin early.
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -175,6 +191,7 @@ sessionStorage.setItem('draft', JSON.stringify({ title: 'Hello' }));
 ```
 
 **Q18: What is the Critical Rendering Path?**
+
 **A:** The CRP is the sequence of steps the browser takes to paint pixels: parse HTML → build DOM, parse CSS → build CSSOM, combine into render tree, layout, then paint. Blocking resources in `<head>` delay this path.
 ```html
 <!-- Inline critical CSS to unblock rendering -->
@@ -185,6 +202,7 @@ sessionStorage.setItem('draft', JSON.stringify({ title: 'Hello' }));
 ```
 
 **Q19: What is a Service Worker and how do you register one?**
+
 **A:** A Service Worker is a JavaScript file that runs in a background thread, intercepts network requests, and enables offline caching, push notifications, and background sync.
 ```js
 if ('serviceWorker' in navigator) {
@@ -196,6 +214,7 @@ if ('serviceWorker' in navigator) {
 ```
 
 **Q20: How does the `<canvas>` element work for 2D drawing?**
+
 **A:** `<canvas>` is a bitmap drawing surface. You obtain a 2D context via `getContext('2d')` and use its imperative API to draw shapes, text, and images programmatically.
 ```html
 <canvas id="myCanvas" width="300" height="150"></canvas>
@@ -214,6 +233,7 @@ if ('serviceWorker' in navigator) {
 ## Mid
 
 **Q21: What are ARIA roles and when should you use them?**
+
 **A:** ARIA roles (`role="..."`) provide semantic meaning to elements that lack native HTML semantics. Use them as a last resort — prefer native elements (`<button>`, `<nav>`) since they include built-in accessibility for free.
 ```html
 <!-- Prefer native -->
@@ -227,6 +247,7 @@ if ('serviceWorker' in navigator) {
 ```
 
 **Q22: What are `aria-label`, `aria-labelledby`, and `aria-describedby`?**
+
 **A:** `aria-label` provides an accessible name directly. `aria-labelledby` references another element's text as the name. `aria-describedby` links to supplementary description text.
 ```html
 <button aria-label="Close dialog">✕</button>
@@ -238,6 +259,7 @@ if ('serviceWorker' in navigator) {
 ```
 
 **Q23: What are ARIA live regions?**
+
 **A:** Live regions announce dynamic content changes to screen readers without requiring focus to move. `aria-live="polite"` waits for the user to finish; `"assertive"` interrupts immediately.
 ```html
 <div role="status" aria-live="polite" aria-atomic="true">
@@ -250,6 +272,7 @@ if ('serviceWorker' in navigator) {
 ```
 
 **Q24: What is IndexedDB and how does it differ from localStorage?**
+
 **A:** IndexedDB is a transactional, key-value database in the browser that stores structured objects, supports indexes, and handles large amounts of data asynchronously. `localStorage` is synchronous and limited to strings and ~5 MB.
 ```js
 const req = indexedDB.open('myDB', 1);
@@ -264,6 +287,7 @@ req.onsuccess = e => {
 ```
 
 **Q25: How does the Intersection Observer API enable lazy loading?**
+
 **A:** `IntersectionObserver` fires a callback when a target element enters or exits the viewport. It is far more efficient than scroll event listeners for triggering lazy loads or animations.
 ```js
 const observer = new IntersectionObserver(entries => {
@@ -279,6 +303,7 @@ document.querySelectorAll('img[data-src]').forEach(img => observer.observe(img))
 ```
 
 **Q26: How does the Drag and Drop API work?**
+
 **A:** Make an element draggable with `draggable="true"`, store data in `dragstart` via `dataTransfer.setData`, prevent default on `dragover`, then retrieve data in `drop`.
 ```html
 <div draggable="true" id="card">Drag me</div>
@@ -294,6 +319,7 @@ document.querySelectorAll('img[data-src]').forEach(img => observer.observe(img))
 ```
 
 **Q27: How does the Geolocation API work?**
+
 **A:** `navigator.geolocation.getCurrentPosition()` prompts the user for permission and then asynchronously returns coordinates. Handle both success and error callbacks.
 ```js
 navigator.geolocation.getCurrentPosition(
@@ -307,6 +333,7 @@ navigator.geolocation.getCurrentPosition(
 ```
 
 **Q28: What are Web Components and what are their three core technologies?**
+
 **A:** Web Components are a set of native browser APIs for creating reusable custom elements. The three pillars are: Custom Elements (define new HTML tags), Shadow DOM (encapsulated DOM/CSS), and HTML Templates (`<template>`/`<slot>`).
 ```js
 class MyCard extends HTMLElement {
@@ -320,6 +347,7 @@ customElements.define('my-card', MyCard);
 ```
 
 **Q29: What is Shadow DOM and what problem does it solve?**
+
 **A:** Shadow DOM attaches an encapsulated DOM tree to an element; styles defined inside do not leak out and external styles cannot bleed in. It solves CSS collisions in reusable components.
 ```js
 const host = document.getElementById('widget');
@@ -330,6 +358,7 @@ shadow.innerHTML = `
 ```
 
 **Q30: What is the `srcset` attribute and when do you use the `sizes` attribute with it?**
+
 **A:** `srcset` lists candidate image URLs with width descriptors. `sizes` tells the browser how wide the image will be rendered at each breakpoint so it can pick the optimal candidate before layout completes.
 ```html
 <img
@@ -341,6 +370,7 @@ shadow.innerHTML = `
 ```
 
 **Q31: What is WCAG 2.1 AA and what are its four core principles?**
+
 **A:** WCAG 2.1 AA is the accessibility conformance level required by most regulations. Its four principles (POUR): Perceivable, Operable, Understandable, and Robust. Key AA requirements include 4.5:1 text contrast and full keyboard operability.
 ```html
 <!-- AA: minimum 4.5:1 contrast ratio -->
@@ -352,6 +382,7 @@ shadow.innerHTML = `
 ```
 
 **Q32: What is a skip link and why is it important for accessibility?**
+
 **A:** A skip link is a visually hidden anchor at the top of the page that jumps keyboard users past the navigation directly to the main content, preventing them from tabbing through every nav item on every page.
 ```html
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -363,6 +394,7 @@ shadow.innerHTML = `
 ```
 
 **Q33: How does focus management work in single-page applications?**
+
 **A:** After a route change or modal open, programmatically move focus to a meaningful element (page heading or dialog) so keyboard and screen reader users know where they are. Use `element.focus()` after the DOM updates.
 ```js
 // After route change, move focus to the new page heading
@@ -376,6 +408,7 @@ router.afterEach(() => {
 ```
 
 **Q34: What is WebRTC and what are its core components?**
+
 **A:** WebRTC enables peer-to-peer audio, video, and data communication directly between browsers. Core components: `RTCPeerConnection` (media/data transport), `RTCDataChannel` (arbitrary data), and `getUserMedia` (camera/mic access).
 ```js
 const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
@@ -385,6 +418,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ```
 
 **Q35: How do you register and use an HTML `<template>`?**
+
 **A:** A `<template>` element holds inert HTML that is not rendered. Clone its content with `importNode` or `cloneNode` to stamp out instances efficiently without re-parsing HTML strings.
 ```html
 <template id="card-tpl">
@@ -402,6 +436,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ```
 
 **Q36: What is the `<dialog>` element and how do you control it?**
+
 **A:** `<dialog>` is a native modal/non-modal dialog element. Call `.showModal()` for a modal (with backdrop and focus trap) or `.show()` for non-modal. It emits a `close` event when dismissed.
 ```html
 <dialog id="myDialog">
@@ -416,6 +451,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ```
 
 **Q37: What is the `<details>` and `<summary>` element combination?**
+
 **A:** `<details>` creates a native disclosure widget; `<summary>` provides its visible heading. When the user clicks the summary, the rest of the details content toggles open/closed without JavaScript.
 ```html
 <details>
@@ -425,6 +461,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ```
 
 **Q38: How does the `<form>` `novalidate` attribute interact with custom validation?**
+
 **A:** `novalidate` disables browser's built-in constraint validation UI so you can implement custom validation messages via the Constraint Validation API (`setCustomValidity`, `reportValidity`) with full control over styling and messaging.
 ```html
 <form id="myForm" novalidate>
@@ -441,6 +478,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ```
 
 **Q39: What does `tabindex` do and what are its valid values?**
+
 **A:** `tabindex="0"` adds an element to the natural tab order. `tabindex="-1"` removes it from tab order but allows programmatic focus. Positive values force a specific order — avoid them as they disrupt natural flow.
 ```html
 <div role="button" tabindex="0"
@@ -452,6 +490,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ```
 
 **Q40: What is the `rel="noopener noreferrer"` attribute on links?**
+
 **A:** `noopener` prevents the opened page from accessing the opener's `window` object (prevents tab-napping attacks). `noreferrer` additionally suppresses the `Referer` header. Both should be used on `target="_blank"` links.
 ```html
 <a href="https://external.com"
@@ -466,6 +505,7 @@ pc.createOffer().then(offer => pc.setLocalDescription(offer));
 ## Advanced
 
 **Q41: How do you implement a complete Service Worker caching strategy?**
+
 **A:** A cache-first strategy serves from cache instantly; a network-first strategy ensures freshness. Most apps combine both: cache-first for assets, network-first for API calls, with a stale-while-revalidate pattern for HTML.
 ```js
 // sw.js
@@ -484,6 +524,7 @@ self.addEventListener('fetch', e => e.respondWith(
 ```
 
 **Q42: How do you build a performant custom element with lifecycle callbacks?**
+
 **A:** Custom elements have four lifecycle callbacks: `connectedCallback`, `disconnectedCallback`, `adoptedCallback`, and `attributeChangedCallback`. Use `observedAttributes` to react to attribute changes without polling.
 ```js
 class CounterEl extends HTMLElement {
@@ -498,6 +539,7 @@ customElements.define('my-counter', CounterEl);
 ```
 
 **Q43: How does the `PerformanceObserver` API help measure real-user metrics?**
+
 **A:** `PerformanceObserver` subscribes to performance entries (LCP, CLS, FID, FCP) emitted by the browser at runtime, enabling you to capture Core Web Vitals in real user sessions and send them to analytics.
 ```js
 new PerformanceObserver(list => {
@@ -509,6 +551,7 @@ new PerformanceObserver(list => {
 ```
 
 **Q44: How do you use the `Content-Security-Policy` meta tag to prevent XSS?**
+
 **A:** CSP restricts which sources can execute scripts, load styles, or embed frames. A strict policy using nonces or hashes for inline scripts eliminates the most common XSS vectors.
 ```html
 <!-- Prefer HTTP header, but meta works for static pages -->
@@ -521,6 +564,7 @@ new PerformanceObserver(list => {
 ```
 
 **Q45: How do you implement accessible keyboard navigation for a custom dropdown?**
+
 **A:** Follow the ARIA Authoring Practices for `combobox`/`listbox`: trap Tab focus inside, use arrow keys to move between options, Enter/Space to select, Escape to close, and announce changes via `aria-activedescendant`.
 ```html
 <div role="combobox" aria-expanded="true" aria-haspopup="listbox">
@@ -533,6 +577,7 @@ new PerformanceObserver(list => {
 ```
 
 **Q46: How do you use the `ResizeObserver` API for responsive components?**
+
 **A:** `ResizeObserver` fires whenever an element's size changes, enabling true component-level responsiveness without relying on window resize events or media queries at the page level.
 ```js
 const ro = new ResizeObserver(entries => {
@@ -546,6 +591,7 @@ document.querySelectorAll('.card').forEach(el => ro.observe(el));
 ```
 
 **Q47: How does `<input type="range">` integrate with `<output>` for accessible value display?**
+
 **A:** Link the `<input>` to an `<output>` element via the `for` attribute. Update the output's value on `input` events. This is semantically correct and assistive technologies announce the current value.
 ```html
 <label for="vol">Volume</label>
@@ -556,6 +602,7 @@ document.querySelectorAll('.card').forEach(el => ro.observe(el));
 ```
 
 **Q48: How do you implement a manifest and home-screen icon for a Progressive Web App?**
+
 **A:** Create a `manifest.json` with app name, icons, start URL, and display mode, then link it from `<head>`. The browser uses it when the user installs the app to the home screen.
 ```json
 {
@@ -573,6 +620,7 @@ document.querySelectorAll('.card').forEach(el => ro.observe(el));
 ```
 
 **Q49: How does the `MutationObserver` API work?**
+
 **A:** `MutationObserver` watches for DOM changes (child nodes, attributes, subtree) and fires a callback with a list of `MutationRecord` objects. It replaces deprecated mutation events and is far more performant.
 ```js
 const observer = new MutationObserver(mutations => {
@@ -588,6 +636,7 @@ observer.observe(document.getElementById('feed'), {
 ```
 
 **Q50: How do you use `<link rel="modulepreload">` for ES module performance?**
+
 **A:** `modulepreload` fetches, parses, and compiles an ES module (and its dependencies) early without executing it, front-loading the compilation cost so the module is instantly available when imported.
 ```html
 <link rel="modulepreload" href="/js/utils.js">

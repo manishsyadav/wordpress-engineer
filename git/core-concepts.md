@@ -1,5 +1,54 @@
 # Git — Core Concepts
 
+```mermaid
+gitGraph
+   commit id: "Initial commit"
+
+   branch develop
+   checkout develop
+   commit id: "Set up project structure"
+   commit id: "Add base theme scaffold"
+
+   branch feature/header-block
+   checkout feature/header-block
+   commit id: "Add header block markup"
+   commit id: "Style header block"
+   commit id: "Add responsive header"
+
+   checkout develop
+   merge feature/header-block id: "Merge: header-block" tag: "PR #12"
+
+   branch feature/cpt-events
+   checkout feature/cpt-events
+   commit id: "Register Events CPT"
+   commit id: "Add meta boxes"
+   commit id: "Add archive template"
+
+   checkout develop
+   merge feature/cpt-events id: "Merge: cpt-events" tag: "PR #15"
+
+   branch release/1.2.0
+   checkout release/1.2.0
+   commit id: "Bump version to 1.2.0"
+   commit id: "Update changelog"
+
+   checkout main
+   merge release/1.2.0 id: "Release 1.2.0" tag: "v1.2.0"
+
+   checkout develop
+   merge release/1.2.0 id: "Back-merge release fixes"
+
+   checkout main
+   branch hotfix/broken-nav
+   commit id: "Fix broken nav on mobile"
+
+   checkout main
+   merge hotfix/broken-nav id: "Hotfix: nav" tag: "v1.2.1"
+
+   checkout develop
+   merge hotfix/broken-nav id: "Back-merge hotfix"
+```
+
 ## 1. Git Data Model
 
 Git stores snapshots, not diffs. Every object is content-addressed by a SHA-1 (soon SHA-256) hash.

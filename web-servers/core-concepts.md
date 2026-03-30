@@ -2,6 +2,51 @@
 
 > Nginx and Apache essentials for production WordPress hosting.
 
+```mermaid
+flowchart TD
+    BROWSER([Browser\nHTTP/HTTPS Request])
+
+    BROWSER -->|"TCP :443 TLS handshake"| NGINX
+
+    subgraph NGINX_LAYER["Nginx (Reverse Proxy + Web Server)"]
+        direction TB
+        NGINX["Nginx Worker Process\nevent-driven, async, non-blocking\n~2 MB RAM per worker"]
+        NGINX --> STATIC{"Static File?\n/wp-content/uploads/\n.css / .js / .png"}
+        STATIC -->|"Yes — sendfile()\nkernel bypass"| STATICFILE["Serve Static Asset\nfrom disk directly\nCache-Control headers set"]
+        STATIC -->|"No — PHP needed\ntry_files → index.php"| FASTCGI
+        FASTCGI["FastCGI Pass\nfastcgi_pass 127.0.0.1:9000\nor unix:/run/php-fpm.sock"]
+    end
+
+    subgraph FPM_LAYER["PHP-FPM (FastCGI Process Manager)"]
+        direction TB
+        POOL["FPM Pool\npm = dynamic\nmax_children = 20\nstart_servers = 5"]
+        POOL --> PHPWORKER["PHP Worker Process\nForks from pool master\nHandles one request\nper process at a time"]
+        PHPWORKER --> WP["WordPress\nindex.php → wp-load.php\nQuery + Template render"]
+    end
+
+    subgraph DATA_LAYER["Data Layer"]
+        direction LR
+        MYSQL[("MySQL / MariaDB\nwp_posts\nwp_options\nwp_postmeta")]
+        REDIS[("Redis / Memcached\nObject Cache\nwp_cache_get/set\nTransients")]
+        S3["S3 / Cloud Storage\nMedia uploads\nOffloaded by plugin"]
+    end
+
+    FASTCGI -->|"FastCGI protocol\nPHP_VALUE headers"| POOL
+    WP -->|"wpdb queries"| MYSQL
+    WP -->|"WP_Object_Cache"| REDIS
+    WP -->|"wp_get_attachment_url"| S3
+
+    PHPWORKER -->|"HTML response\nback to Nginx"| NGINX
+    STATICFILE --> BROWSER
+    NGINX -->|"HTTP response\nwith headers"| BROWSER
+
+    style BROWSER fill:#3498db,color:#fff
+    style NGINX fill:#27ae60,color:#fff
+    style PHPWORKER fill:#9b59b6,color:#fff
+    style MYSQL fill:#e74c3c,color:#fff
+    style REDIS fill:#e67e22,color:#fff
+```
+
 ---
 
 ## 1. Nginx vs Apache

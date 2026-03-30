@@ -1,5 +1,99 @@
 # MySQL — Core Concepts
 
+```mermaid
+erDiagram
+    wp_users {
+        bigint ID PK
+        varchar user_login
+        varchar user_pass
+        varchar user_email
+        varchar user_registered
+        varchar display_name
+    }
+
+    wp_usermeta {
+        bigint umeta_id PK
+        bigint user_id FK
+        varchar meta_key
+        longtext meta_value
+    }
+
+    wp_posts {
+        bigint ID PK
+        bigint post_author FK
+        datetime post_date
+        longtext post_content
+        varchar post_title
+        varchar post_status
+        varchar post_type
+        bigint post_parent FK
+    }
+
+    wp_postmeta {
+        bigint meta_id PK
+        bigint post_id FK
+        varchar meta_key
+        longtext meta_value
+    }
+
+    wp_terms {
+        bigint term_id PK
+        varchar name
+        varchar slug
+        bigint term_group
+    }
+
+    wp_term_taxonomy {
+        bigint term_taxonomy_id PK
+        bigint term_id FK
+        varchar taxonomy
+        bigint parent FK
+        bigint count
+    }
+
+    wp_term_relationships {
+        bigint object_id FK
+        bigint term_taxonomy_id FK
+        int term_order
+    }
+
+    wp_comments {
+        bigint comment_ID PK
+        bigint comment_post_ID FK
+        varchar comment_author
+        varchar comment_author_email
+        longtext comment_content
+        varchar comment_approved
+        bigint user_id FK
+    }
+
+    wp_commentmeta {
+        bigint meta_id PK
+        bigint comment_id FK
+        varchar meta_key
+        longtext meta_value
+    }
+
+    wp_options {
+        bigint option_id PK
+        varchar option_name
+        longtext option_value
+        varchar autoload
+    }
+
+    wp_users ||--o{ wp_usermeta : "has many"
+    wp_users ||--o{ wp_posts : "authored by"
+    wp_posts ||--o{ wp_postmeta : "has many"
+    wp_posts ||--o{ wp_posts : "parent of"
+    wp_posts ||--o{ wp_comments : "has many"
+    wp_posts ||--o{ wp_term_relationships : "tagged with"
+    wp_terms ||--o{ wp_term_taxonomy : "categorised as"
+    wp_term_taxonomy ||--o{ wp_term_relationships : "applied via"
+    wp_term_taxonomy ||--o| wp_term_taxonomy : "parent of"
+    wp_comments ||--o{ wp_commentmeta : "has many"
+    wp_users ||--o{ wp_comments : "authored by"
+```
+
 ## 1. Relational Database Design and Normalization
 
 Normalization organizes tables to reduce data redundancy and improve integrity.
